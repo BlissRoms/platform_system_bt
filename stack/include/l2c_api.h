@@ -178,6 +178,7 @@ typedef struct
     UINT16  credits;
 } tL2CAP_LE_CFG_INFO;
 
+
 /* L2CAP channel configured field bitmap */
 #define L2CAP_CH_CFG_MASK_MTU           0x0001
 #define L2CAP_CH_CFG_MASK_QOS           0x0002
@@ -894,6 +895,21 @@ extern BOOLEAN L2CA_GetBDAddrbyHandle (UINT16 handle, BD_ADDR bd_addr);
 *******************************************************************************/
 extern UINT8 L2CA_GetChnlFcrMode (UINT16 lcid);
 
+#if (defined(LE_L2CAP_CFC_INCLUDED) && (LE_L2CAP_CFC_INCLUDED == TRUE))
+/*******************************************************************************
+**
+**  Function         L2CA_LE_SetFlowControlCredits
+**
+**  Description      Set flow control credits
+**
+**  Parameters:      Local CID,Credits to set
+**
+**  Return value:    TRUE if flow control set,FALSE otherwise
+**
+*******************************************************************************/
+
+extern BOOLEAN L2CA_LE_SetFlowControlCredits (UINT16 cid, UINT16 credits);
+#endif
 
 /*******************************************************************************
 **

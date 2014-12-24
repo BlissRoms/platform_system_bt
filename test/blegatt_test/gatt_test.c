@@ -46,7 +46,7 @@
 #include "bt_target.h"
 #include "l2c_api.h"
 #include "bta_api.h"
-
+#include "l2c_int.h"
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netdb.h>
@@ -102,6 +102,40 @@ static void register_server_cb(int status, int server_if, bt_uuid_t *app_uuid);
 
 static unsigned char main_done = 0;
 static bt_status_t status;
+typedef struct
+{
+    UINT16      result;                 /* Only used in confirm messages */
+    UINT16      credits;                /* used to send the outstanding credits */
+    UINT16      le_psm;
+    UINT16      le_mps;
+    UINT16      le_mtu;
+    UINT16      init_credits;          /* initial credits */
+} tL2CAP_LE_CONN_INFO;
+
+typedef struct
+{
+    BOOLEAN                 in_use;
+    UINT16                  psm;
+    UINT16                  lcid;
+    tL2CAP_LE_CONN_INFO     loc_conn_info;
+    tL2CAP_LE_CONN_INFO     rmt_conn_info;
+    BOOLEAN                 is_server;
+} t_le_chnl_info;
+
+t_le_chnl_info le_chnl_conn_info[MAX_L2CAP_CLIENTS];
+#define LE_ACL_MAX_BUFF_SIZE 4096
+static int num_frames = 1;
+static unsigned long g_delay = 1; /* Default delay before data transfer */
+static int count = 1;
+static UINT16 g_BleEncKeySize = 16;
+//static int g_omps = 0;
+//static int rcv_count = 0;
+static int g_le_coc_if = 0;
+static int rcv_itration = 0;
+static volatile BOOLEAN cong_status = FALSE;
+/* Control channel LE-L2CAP default options */
+static tL2CAP_LE_CONN_INFO le_conn_info;
+static tL2CAP_LE_CFG_INFO local_coc_cfg;
 
 /* Main API */
 static bluetooth_device_t* bt_device;
@@ -157,8 +191,9 @@ L2CAP_CONN_SETUP,
 L2CAP_CONNECTED
 };
 
-static int L2cap_conn_state = L2CAP_NOT_CONNECTED;
+//static int L2cap_conn_state = L2CAP_NOT_CONNECTED;
 static tL2CAP_CFG_INFO tl2cap_cfg_info;
+static long data_size = -1;
 static UINT16           g_PSM           = 0;
 static UINT16           g_lcid          = 0;
 
@@ -208,6 +243,20 @@ static UINT16 do_l2cap_connect(bt_bdaddr_t * bd_addr);
 
 int GetBdAddr(char *p, bt_bdaddr_t *pbd_addr);
 
+/* LE L2CAP functions */
+static t_le_chnl_info *le_allocate_conn_info(UINT16 psm, BOOLEAN is_server);
+static t_le_chnl_info *le_get_conn_info(UINT16 psm, BOOLEAN is_server);
+static t_le_chnl_info *le_get_conn_info_by_lcid(UINT16 lcid);
+static BOOLEAN le_release_conn_info(t_le_chnl_info *le_conn_info);
+UINT8 do_l2cap_DataWrite(UINT16 chnl_id, char *p , UINT32 len);
+static int Send_Data();
+static int send_file(char *p);
+static void le_l2cap_coc_connect(char *svr);
+UINT16 do_le_l2cap_coc_connect(char *p);
+static void le_l2cap_coc_flow_ctrl(char *p);
+UINT16 do_le_l2cap_coc_flow_ctrl(char *p);
+static void do_le_coc_disconnect(char *p);
+int GetFileName(char *p, char *filename);
 
 /************************************************************************************
 **  GATT Client Callbacks
@@ -224,7 +273,7 @@ static void register_client_cb(int status, int client_if, bt_uuid_t *app_uuid)
 
 static void scan_result_cb(bt_bdaddr_t* remote_bd_addr, int rssi, uint8_t* adv_data)
 {
-    printf("%s:: remote_bd_addr=%02x:%02x:%02x:%02x:%02x:%02x, adv_data=0x%x \n",  __FUNCTION__,
+    printf("%s:: remote_bd_addr= %02X%02X%02X%02X%02X%02X , adv_data=0x%x \n",  __FUNCTION__,
     remote_bd_addr->address[0], remote_bd_addr->address[1], remote_bd_addr->address[2],
     remote_bd_addr->address[3], remote_bd_addr->address[4], remote_bd_addr->address[5], *adv_data);
 }
@@ -964,8 +1013,7 @@ static bool set_wake_alarm(uint64_t delay_millis, bool should_wake, alarm_cb cb,
    new_value.it_interval.tv_sec = 0;
    new_value.it_interval.tv_nsec = 0;
    timer_settime(timer, 0, &new_value, NULL);
-
-  return TRUE;
+   return true;
 }
 
 static int acquire_wake_lock(const char *lock_name)
@@ -1006,7 +1054,35 @@ static bt_os_callouts_t bt_os_callbacks = {
 static void l2test_l2c_connect_ind_cb(BD_ADDR bd_addr, UINT16 lcid, UINT16 psm, UINT8 id)
 {
 
-    if((L2CAP_FCR_ERTM_MODE == g_Fcr_Mode) || (L2CAP_FCR_STREAM_MODE == g_Fcr_Mode)) {
+    UINT16 result;
+
+    local_coc_cfg.credits = L2CAP_LE_DEFAULT_CREDIT;
+    local_coc_cfg.mtu = L2CAP_LE_DEFAULT_MTU;
+    local_coc_cfg.mps = L2CAP_LE_DEFAULT_MPS;
+    /* Verify if LE PSM  */
+   if (L2C_IS_VALID_LE_PSM(psm))
+   {
+       if (psm == 200)
+       {
+           printf("No Resources Available\n");
+           result = L2CAP_LE_NO_RESOURCES;
+           sL2capInterface->LeConnectRsp (bd_addr, id, lcid, result,L2CAP_LE_CONN_OK,&local_coc_cfg);
+       }
+       else if(psm == 201)
+       {
+           printf("L2CAP_LE_CONN_INSUFFI_AUTHORIZATION \n");
+           result = L2CAP_LE_INSUFFICIENT_AUTHORIZATION;
+           sL2capInterface->LeConnectRsp (bd_addr, id, lcid, result,L2CAP_LE_CONN_OK,&local_coc_cfg);
+       }
+       else
+       {
+
+           result = L2CAP_LE_CONN_OK;
+           sL2capInterface->LeConnectRsp (bd_addr, id, lcid, result,L2CAP_LE_CONN_OK,&local_coc_cfg);
+       }
+       return;
+   }
+   if((L2CAP_FCR_ERTM_MODE == g_Fcr_Mode) || (L2CAP_FCR_STREAM_MODE == g_Fcr_Mode)) {
         sL2capInterface->ErtmConnectRsp(bd_addr, id, lcid, L2CAP_CONN_OK, L2CAP_CONN_OK, &t_ertm_info);
     } else {
         sL2capInterface->ConnectRsp(bd_addr, id, lcid, L2CAP_CONN_OK, L2CAP_CONN_OK);
@@ -1027,7 +1103,20 @@ static void l2test_l2c_connect_ind_cb(BD_ADDR bd_addr, UINT16 lcid, UINT16 psm, 
 
 static void l2test_l2c_connect_cfm_cb(UINT16 lcid, UINT16 result)
 {
+    t_le_chnl_info *le_conn_info = le_get_conn_info_by_lcid(lcid);
+    if (le_conn_info&&L2C_IS_VALID_LE_PSM(le_conn_info->psm))
+    {
 
+        if (result == L2CAP_LE_CONN_OK) {
+            g_ConnectionState = CONNECT;
+        }
+        else if(le_conn_info && !le_conn_info->is_server)
+        {
+            le_release_conn_info(le_conn_info);
+        }
+        return;
+    }
+#if 0
     if (result == L2CAP_CONN_OK) {
         L2cap_conn_state = L2CAP_CONN_SETUP;
         tL2CAP_CFG_INFO cfg;
@@ -1037,6 +1126,7 @@ static void l2test_l2c_connect_cfm_cb(UINT16 lcid, UINT16 result)
         g_ConnectionState = CONNECT;
         g_lcid = lcid;
     }
+#endif
 }
 
 static void l2test_l2c_connect_pnd_cb(UINT16 lcid)
@@ -1077,6 +1167,13 @@ static void l2test_l2c_config_cfm_cb(UINT16 lcid, tL2CAP_CFG_INFO *p_cfg)
 
 static void l2test_l2c_disconnect_ind_cb(UINT16 lcid, BOOLEAN ack_needed)
 {
+    t_le_chnl_info *le_conn_info = le_get_conn_info_by_lcid(lcid);
+    /* release the conn info entry if it'a  client */
+    if(le_conn_info &&  !le_conn_info->is_server)
+    {
+        le_release_conn_info(le_conn_info);
+    }
+    printf("l2test_le_l2c_disconnect_ind_cb, cid=0x%x, acks=%d\n", lcid, ack_needed);
     if (ack_needed)
     {
         /* send L2CAP disconnect response */
@@ -1087,6 +1184,14 @@ static void l2test_l2c_disconnect_ind_cb(UINT16 lcid, BOOLEAN ack_needed)
 }
 static void l2test_l2c_disconnect_cfm_cb(UINT16 lcid, UINT16 result)
 {
+    t_le_chnl_info *le_conn_info = le_get_conn_info_by_lcid(lcid);
+    /* release the conn info entry if it'a  client */
+    if(le_conn_info &&  !le_conn_info->is_server)
+    {
+        le_release_conn_info(le_conn_info);
+    }
+
+    printf("l2test_le_l2c_disconnect_cfm_cb, cid=0x%x, result=%d\n", lcid, result);
     g_ConnectionState = DISCONNECT;
     g_lcid = 0;
 }
@@ -1096,11 +1201,18 @@ static void l2test_l2c_QoSViolationInd(BD_ADDR bd_addr)
 }
 static void l2test_l2c_data_ind_cb(UINT16 lcid, BT_HDR *p_buf)
 {
-     printf("l2test_l2c_data_ind_cb:: event=%u, len=%u, offset=%u, layer_specific=%u\n", p_buf->event, p_buf->len, p_buf->offset, p_buf->layer_specific);
+    rcv_itration++;
+    printf("l2test_l2c_data_ind_cb:: itration=%d, event=%u, len=%u, "\
+            "offset=%u, layer_specific=%u\n",rcv_itration, p_buf->event,
+            p_buf->len, p_buf->offset, p_buf->layer_specific);
+    sL2capInterface->LeFreeBuf(p_buf);
+    printf("l2test_l2c_data_ind_cb:: event=%u, len=%u, offset=%u, layer_specific=%u\n",
+            p_buf->event, p_buf->len, p_buf->offset, p_buf->layer_specific);
 }
 static void l2test_l2c_congestion_ind_cb(UINT16 lcid, BOOLEAN is_congested)
 {
-    printf("l2test_l2c_congestion_ind_cb\n");
+    cong_status = is_congested;
+    printf("l2test_l2c_congestion_ind_cb is_congested %d\n ", is_congested);
 }
 
 static void l2test_l2c_tx_complete_cb (UINT16 lcid, UINT16 NoOfSDU)
@@ -1114,6 +1226,79 @@ static void l2c_echo_rsp_cb(UINT16 p)
     printf("Ping Response = %s\n", (L2CAP_PING_RESULT_OK==p) ?"Ping Reply OK" :(L2CAP_PING_RESULT_NO_LINK==p) ?"Link Could Not be setup" :"Remote L2cap did not reply");
 }
 */
+/*LE-L2CAP Callback*/
+
+#if 0
+
+static void l2test_le_connect_ind_cb(BD_ADDR bd_addr, UINT16 lcid, UINT8 id,
+                                    tL2CAP_LE_CONN_INFO *conn_info)
+{
+    printf(" l2test_le_connect_ind_cb\n lcid=%u\n id=%u\n ls_psm %d\n "\
+            "le_mtu %d\n le_mps %d\n", lcid, id, conn_info->le_psm,
+            conn_info->le_mtu, conn_info->le_mps);
+    t_le_chnl_info *le_conn_info;
+    if (conn_info->le_psm == 200)
+    {
+        printf("No Resources Available\n");
+        conn_info->result = L2CAP_LE_NO_RESOURCES;
+        sL2capInterface->LeConnectRsp (bd_addr, id, lcid, conn_info);
+        return;
+    }
+    else if(conn_info->le_psm == 201)
+    {
+        printf("L2CAP_LE_CONN_INSUFFI_AUTHORIZATION \n");
+        conn_info->result = L2CAP_LE_INSUFFICIENT_AUTHORIZATION;
+        sL2capInterface->LeConnectRsp (bd_addr, id, lcid, conn_info);
+        return;
+    }
+
+    le_conn_info = le_get_conn_info(conn_info->le_psm, TRUE);
+
+    if(le_conn_info)
+    {
+        le_conn_info->loc_conn_info.result = L2CAP_LE_CONN_OK;
+        le_conn_info->lcid = lcid;
+        sL2capInterface->LeConnectRsp (bd_addr, id, lcid,
+                &le_conn_info->loc_conn_info);
+        memcpy(&le_conn_info->rmt_conn_info, conn_info,
+                sizeof(tL2CAP_LE_CONN_INFO));
+        g_ConnectionState = CONNECT;
+    }
+    else
+    {
+        printf("No PSM registered \n");
+        conn_info->result = L2CAP_LE_NO_PSM;
+        sL2capInterface->LeConnectRsp (bd_addr, id, lcid, conn_info);
+        return;
+    }
+}
+
+static void l2test_le_connect_cfm_cb(UINT16 lcid,
+        tL2CAP_LE_CONN_INFO *conn_info)
+{
+    t_le_chnl_info *le_conn_info;
+
+    printf(" l2test_le_connect_cfm_cb\n lcid=%u\n ls_psm %d\n le_mtu %d\n "\
+            "le_mps %d\n result %d\n",lcid, conn_info->le_psm,
+            conn_info->le_mtu, conn_info->le_mps, conn_info->result);
+
+    le_conn_info = le_get_conn_info(conn_info->le_psm, FALSE);
+
+    if (conn_info->result == L2CAP_LE_CONN_OK) {
+        g_ConnectionState = CONNECT;
+        if(le_conn_info)
+        {
+            memcpy(&le_conn_info->rmt_conn_info, conn_info,
+                    sizeof(tL2CAP_LE_CONN_INFO));
+            le_conn_info->lcid = lcid;
+        }
+    }
+    else if(le_conn_info && !le_conn_info->is_server)
+    {
+        le_release_conn_info(le_conn_info);
+    }
+}
+#endif
 
 /* L2CAP callback function structure */
 static tL2CAP_APPL_INFO l2test_l2c_appl = {
@@ -1944,6 +2129,7 @@ void do_l2cap_init(char *p)
 {
 
     memset(&tl2cap_cfg_info, 0, sizeof(tl2cap_cfg_info));
+    memset(&le_conn_info, 0, sizeof(le_conn_info));
     //Use macros for the constants
     tl2cap_cfg_info.mtu_present = TRUE;
     tl2cap_cfg_info.mtu = g_imtu;
@@ -1954,7 +2140,10 @@ void do_l2cap_init(char *p)
     tl2cap_cfg_info.fcr.mode = g_Fcr_Mode;
     tl2cap_cfg_info.fcs = 0;
     tl2cap_cfg_info.fcs_present = 1;
-
+    le_conn_info.init_credits = L2CAP_LE_MAX_CREDIT;
+    le_conn_info.le_mtu = L2CAP_LE_DEFAULT_MTU;
+    le_conn_info.le_mps = L2CAP_LE_DEFAULT_MPS;
+    le_conn_info.le_psm = 0x80; //dynamic le psm starts from 0x80
     if(L2CAP_FCR_ERTM_MODE == tl2cap_cfg_info.fcr.mode)
     {
         tl2cap_cfg_info.fcr = ertm_fcr_opts_def;
@@ -1962,6 +2151,12 @@ void do_l2cap_init(char *p)
     else if(L2CAP_FCR_STREAM_MODE == tl2cap_cfg_info.fcr.mode)
     {
         tl2cap_cfg_info.fcr = stream_fcr_opts_def;
+    }
+    //Load L2cap Interface
+    else if(NULL == sL2capInterface)
+    {
+        printf("Get L2cap testapp interfaces\n");
+        sL2capInterface = sBtInterface->get_testapp_interface(TEST_APP_L2CAP);
     }
     tl2cap_cfg_info.fcr.tx_win_sz = 3;
     //Initialize ERTM Parameters
@@ -2014,8 +2209,363 @@ BOOLEAN do_l2cap_disconnect(char *p)
     return sL2capInterface->DisconnectReq(g_lcid);
 }
 
+/* LE-L2CAP functionalities */
+static t_le_chnl_info *le_allocate_conn_info(UINT16 psm, BOOLEAN is_server)
+{
+    t_le_chnl_info    *p_le_chnl_info = &le_chnl_conn_info[0];
+    UINT16      i;
+
+    for (i = 0; i < MAX_L2CAP_CLIENTS; i++, p_le_chnl_info++)
+    {
+        if (!p_le_chnl_info->in_use)
+        {
+            p_le_chnl_info->in_use = TRUE;
+            p_le_chnl_info->is_server = is_server;
+            p_le_chnl_info->psm    = psm;
+            return p_le_chnl_info;
+        }
+    }
+    return (NULL);
+
+}
+
+static t_le_chnl_info *le_get_conn_info(UINT16 psm, BOOLEAN is_server)
+{
+    t_le_chnl_info    *p_le_chnl_info = &le_chnl_conn_info[0];
+    UINT16      i;
+
+    for (i = 0; i < MAX_L2CAP_CLIENTS; i++, p_le_chnl_info++)
+    {
+        if ((p_le_chnl_info->in_use) && (p_le_chnl_info->psm == psm)
+                && (is_server == p_le_chnl_info->is_server))
+        {
+            return p_le_chnl_info;
+        }
+    }
+    return NULL;
+
+}
+
+static t_le_chnl_info *le_get_conn_info_by_lcid(UINT16 lcid)
+{
+    t_le_chnl_info    *p_le_chnl_info = &le_chnl_conn_info[0];
+    UINT16      i;
+
+    for (i = 0; i < MAX_L2CAP_CLIENTS; i++, p_le_chnl_info++)
+    {
+        if ((p_le_chnl_info->in_use) && (p_le_chnl_info->lcid == lcid))
+        {
+            return p_le_chnl_info;
+        }
+    }
+    return NULL;
+
+}
+
+static BOOLEAN le_release_conn_info(t_le_chnl_info *le_conn_info)
+{
+    if (le_conn_info && (le_conn_info->in_use))
+    {
+        le_conn_info->in_use = FALSE;
+        le_conn_info->is_server = 0;
+        le_conn_info->psm    = 0;
+        memset(le_conn_info, 0, sizeof(tL2CAP_LE_CONN_INFO));
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static void do_start_advertisment(char *p)
+{
+    tBT_UUID    uuid;
+    int option = get_int(&p, -1);
+    int start = get_int(&p, -1);
+
+    uuid.len = LEN_UUID_128;
+    memcpy(&uuid.uu.uuid128, "\x11\x22\xA0\x0D\x00\x00\x00\x00\x01\x23\x45\x67\x89\xAB\xCD\xEF", 16); //1122A00D-0000-0000-0123-456789ABCDEF
+
+    if ((g_le_coc_if == 0) && option)
+        g_le_coc_if = sGattInterface->Register(&uuid, &sGattCB);
+    printf("Gatt Registration Done\n");
+
+    if( option)
+    {
+        if (start == 1)
+            status = sGattInterface->Listen(g_le_coc_if, start, NULL);
+        else if (start == 0)
+            status = sGattInterface->Listen(g_le_coc_if, start, NULL);
+        else
+        {
+            printf("Unknown parameter\n");
+            return;
+        }
+    }
+    else
+    {
+        if (start == 1)
+            status = sGattInterface->Listen(g_server_if_scan, start, NULL);
+        else if (start == 0)
+            status = sGattInterface->Listen(g_server_if_scan, start, NULL);
+        else
+        {
+            printf("Unknown parameter\n");
+            return;
+        }
+    }
+    printf("Gatt Listen status is %d\n", status);
+}
+
+UINT16 do_le_l2cap_coc_flow_ctrl(char *p)
+{
+    UINT16 lcid = get_int(&p, -1);
+
+    UINT16 credits = get_int(&p, -1);
+
+    printf("\ndo_le_l2cap_coc_flow_ctrl lcid = %d, credits = %d\n", lcid, credits);
+    return sL2capInterface->LeFlowControl(lcid, credits);
+}
+static void le_l2cap_coc_flow_ctrl(char *p)
+{
+    printf("In le_l2cap_coc_flow_ctrl\n");
+    do_le_l2cap_coc_flow_ctrl(p);
+}
+
+UINT16 do_le_l2cap_coc_connect(char *p)
+{
+    int le_initiator_sec_level;
+    UINT16 le_coc_seclevel = 0;
+    bt_bdaddr_t bd_addr = {{0}};
+    UINT16 le_psm = get_int(&p, -1);
 
 
+    t_le_chnl_info *le_conn_info = le_allocate_conn_info(le_psm, FALSE);
+
+    if(le_conn_info)
+    {
+        le_conn_info->loc_conn_info.le_psm = le_psm;
+        le_conn_info->loc_conn_info.le_mtu = get_int(&p, -1);
+        le_conn_info->loc_conn_info.le_mps = get_int(&p, -1);
+        le_conn_info->loc_conn_info.init_credits = get_int(&p, -1);
+        le_initiator_sec_level = get_int(&p, -1);
+        if(FALSE == GetBdAddr(p, &bd_addr))    return FALSE;
+    }
+    else
+        return FALSE;
+
+    if (le_initiator_sec_level == 0)
+    {
+        le_coc_seclevel |= BTM_SEC_NONE;
+    }
+    else if (le_initiator_sec_level == 1)
+    {
+        le_coc_seclevel |= BTM_SEC_OUT_AUTHENTICATE;
+    }
+    else if (le_initiator_sec_level == 2)
+    {
+        le_coc_seclevel |= BTM_SEC_OUT_ENCRYPT;
+        le_coc_seclevel |= BTM_SEC_OUT_AUTHENTICATE;
+    }
+    else
+    {
+        printf("Security level not supported");
+        return FALSE;
+    }
+
+    printf("g_SecLevel = %d \n", le_coc_seclevel);
+    sL2capInterface->RegisterLePsm(le_conn_info->loc_conn_info.le_psm, TRUE,
+            le_coc_seclevel, g_BleEncKeySize);
+    sleep(3);
+    local_coc_cfg.credits = le_conn_info->loc_conn_info.init_credits;
+    local_coc_cfg.mtu = le_conn_info->loc_conn_info.le_mtu;
+    local_coc_cfg.mps = le_conn_info->loc_conn_info.le_mps;
+    printf("\ndo_l2cap_connect:::::::: psm %d mtu %d mps %d init_credit %d \n",
+            le_conn_info->loc_conn_info.le_psm, le_conn_info->loc_conn_info.le_mtu,
+            le_conn_info->loc_conn_info.le_mps, le_conn_info->loc_conn_info.init_credits);
+
+    return sL2capInterface->LeConnect(le_conn_info->loc_conn_info.le_psm, ( UINT8 * )&bd_addr.address, &local_coc_cfg);
+}
+
+static void le_l2cap_coc_connect(char *svr)
+{
+    do_le_l2cap_coc_connect(svr);
+}
+
+static void le_l2cap_listen(char *p)
+{
+    int le_rspndr_sec_level;
+    UINT16 le_coc_seclevel = 0;
+    UINT16 le_psm = get_int(&p, -1);
+    t_le_chnl_info *le_conn_info = le_get_conn_info(le_psm, TRUE);
+
+    if(!le_conn_info)
+    {
+        le_conn_info = le_allocate_conn_info(le_psm, TRUE);
+    }
+    else
+    {
+        printf("ALready listening on same channel");
+        return;
+    }
+
+    if(le_conn_info)
+    {
+        le_conn_info->loc_conn_info.le_psm = le_psm;
+        le_conn_info->loc_conn_info.le_mtu = get_int(&p, -1);
+        le_conn_info->loc_conn_info.le_mps = get_int(&p, -1);
+        le_conn_info->loc_conn_info.init_credits = get_int(&p, -1);
+        le_rspndr_sec_level = get_int(&p, -1);
+    }
+    else
+        return;
+
+    if (le_rspndr_sec_level == 0)
+    {
+        le_coc_seclevel |= BTM_SEC_NONE;
+    }
+    else if (le_rspndr_sec_level == 1)
+    {
+        le_coc_seclevel |= BTM_SEC_IN_AUTHENTICATE;
+    }
+    else if (le_rspndr_sec_level == 2)
+    {
+        le_coc_seclevel |= BTM_SEC_IN_ENCRYPT;
+        le_coc_seclevel |= BTM_SEC_IN_AUTHENTICATE;
+    }
+    else
+    {
+        printf("Security level not supported");
+        return ;
+    }
+    printf("g_SecLevel = %d \n", le_coc_seclevel);
+
+    sL2capInterface->RegisterLePsm(le_conn_info->loc_conn_info.le_psm, FALSE,
+                                           le_coc_seclevel, g_BleEncKeySize);
+
+    printf("Waiting for Incoming connection for LE PSM %d... \n",
+                              le_conn_info->loc_conn_info.le_psm);
+}
+
+UINT8 do_l2cap_DataWrite(UINT16 chnl_id, char *p , UINT32 len)
+{
+    return sL2capInterface->DataWrite(chnl_id, p, len);
+}
+
+static int send_file(char *p)
+{
+    uint32_t seq = 0, itration = 1;
+    int fd, size;
+    char filename[] = {0};
+    char tmpBuf[LE_ACL_MAX_BUFF_SIZE];
+    UINT16 lcid;
+
+    lcid = get_int(&p, -1);
+    t_le_chnl_info *le_conn_info = le_get_conn_info_by_lcid(lcid);
+    GetFileName(p, filename);
+
+    if(!le_conn_info)
+    {
+        printf("No conn info, exit \n");
+        return FALSE;
+    }
+
+    g_omtu =  le_conn_info->rmt_conn_info.le_mtu;
+
+    if(g_omtu < LE_ACL_MAX_BUFF_SIZE)
+        data_size = g_omtu;
+    else
+        data_size = LE_ACL_MAX_BUFF_SIZE;
+
+    printf("data_size(max patload size) = %ld, g_omtu(max ttansmission unit) = %d",
+            data_size, g_omtu);
+
+    printf("Filename for input data = %s \n", filename);
+
+    if ((fd = open(filename, O_RDONLY)) < 0)
+    {
+        printf("Open failed: %s (%d)\n", strerror(errno), errno);
+        exit(1);
+    }
+    while (1)
+    {
+        while(cong_status)
+        {
+            usleep(50 * 1000);
+        }
+        if((size = read(fd, tmpBuf, data_size)) <= 0)
+        {
+            printf("\n File end ");
+            break;
+        }
+        printf("Sending data :: itration %d, omtu %d, writing data size %d\n",
+                itration, g_omtu, size);
+        do_l2cap_DataWrite(lcid, tmpBuf, size);
+        itration++;
+    }
+
+    if (num_frames && g_delay && count && !(seq % count))
+        usleep(g_delay);
+    return TRUE;
+}
+
+static int Send_Data(char *p)
+{
+    //uint32_t seq =0;
+    int send_mode;
+    UINT16 lcid;
+
+    lcid = get_int(&p, -1);
+    send_mode = get_int(&p, -1);
+
+    char tmpBuffer_1[] = {
+        0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,
+        0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,
+        0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,
+        0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,
+        0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,
+        0x7F
+    };
+    char tmpBuffer_2[] = {
+        0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,
+        0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,0x7F,
+        0x7F,0x7F,0x7F
+    };
+
+    if(send_mode == 1)  // segmented
+    {
+        printf("Sending Segmented data...\nData written len %d...\n",
+                sizeof(tmpBuffer_1) );
+        do_l2cap_DataWrite(lcid, tmpBuffer_1, sizeof(tmpBuffer_1));
+    }
+    else if( send_mode == 0) // unsegmented
+    {
+        printf("Sending Unsegmented data...\nData written len %d...\n",
+                sizeof(tmpBuffer_2) );
+        do_l2cap_DataWrite(lcid, tmpBuffer_2, sizeof(tmpBuffer_2));
+    }
+    return TRUE;
+}
+
+static void send_data_on_le_coc(char *svr)
+{
+    printf("Sending data on LE L2CAP CoC...\n");
+    Send_Data(svr);
+}
+static void do_send_file(char *svr)
+{
+    printf("Sending file on LE L2CAP CoC...\n");
+    send_file(svr);
+}
+
+BOOLEAN le_coc_disc(char *p)
+{
+    UINT16 cid = get_int(&p, -1);
+    return sL2capInterface->DisconnectReq(cid);
+}
+
+static void do_le_coc_disconnect(char *p)
+{
+    le_coc_disc(p);
+}
 
 /*******************************************************************************
  ** SMP API commands
@@ -2243,6 +2793,36 @@ const t_cmd console_cmd_list[] =
     { "l2cap_send_data_cid", do_l2cap_send_data_cid, ":: BdAddr<00112233445566>, CID<>", 0 },
 
     { "set_local_name", do_set_localname, ":: setName<name>", 0 },
+    /* LE-L2CAP cmds */
+    { " ", NULL, "\n\t\t\033[0m\033[34mLE L2CAP CoC Commands\033[0m", 0 },
+    { " ", NULL, "\033[0m\033[34mCommands\t\t\tParameters\033[0m", 0 },
+
+    { "start_adv", do_start_advertisment, "\t\t::\tuuid [0 - register"\
+        "none (or) 1 - register uuid] , \n\t\t\t\tflag [0- stop adv (or) "\
+        "1 - start adv] \n  " , 0},
+
+    { "le_l2cap_listen", le_l2cap_listen, "\t::\tle_psm [1 to 255], "\
+        "\n\t\t\t\tle_mtu [23 to 65535], \n\t\t\t\tle_mps [23 to 65533],"\
+        " \n\t\t\t\tinit_credits [0 to 65535], \n\t\t\t\tsec_level "\
+        "[0 - None, 1 - Authentication, 2 - Auth and Encryption]", 0},
+
+    { "le_l2cap_coc_connect", le_l2cap_coc_connect, "\t::\tle_psm [128 to 255],"\
+        "\n\t\t\t\tle_mtu [23 to 65535], \n\t\t\t\tle_mps [23 to 65533], "\
+        "\n\t\t\t\tinit_credits [0 to 65535], \n\t\t\t\tsec_level [0 - None,"\
+        " 1 - Authentication, 2 - Encryption], \n\t\t\t\tbd_addr [001122334455] ", 0},
+
+    { "le_l2cap_coc_flow_ctrl", le_l2cap_coc_flow_ctrl, "\t::\tchnl_id [chnl id"\
+        "info from conn_ind or conn_cnf], \n\t\t\t\tcredits [1 to 65535]", 0},
+
+    { "send_data_on_le_coc", send_data_on_le_coc, "\t::\tchnl_id [chnl id info "\
+        "from conn_ind or conn_cnf] , \n\t\t\t\tdata_type [0 - Unsegmented data ,"\
+        "1 - Segmented data]", 0},
+
+    { "send_file", do_send_file, "\t\t::\tchnl_id [chnl_id info from conn_ind"\
+        "or conn_cnf], \n\t\t\t\tfile_name", 0},
+
+    { "le_coc_disconnect", do_le_coc_disconnect, "\t::\tchnl_id [chnl_id info"\
+        "from conn_ind or conn_cnf]", 0},
     /* add here */
 
     /* last entry */
@@ -2282,9 +2862,12 @@ static void process_cmd(char *p, unsigned char is_job)
         for(i=0; i<6; i++) {
             pincode.pin[i] = cmd[i];
         }
+        pincode.pin[i] = '\0';
         if(BT_STATUS_SUCCESS != sBtInterface->pin_reply(remote_bd_address, TRUE, strlen((const char*)pincode.pin), &pincode)) {
             printf("Pin Reply failed\n");
         }
+        else
+            printf("Pin Reply done and paired\n");
         //flush the char for pinkey
         cmd[6] = 0;
     }
@@ -2363,8 +2946,27 @@ int main (int argc, char * argv[])
 
     return 0;
 }
+int GetFileName(char *p, char *filename)
+{
+//    uint8_t  i;
+    int len;
 
+    skip_blanks(&p);
 
+    printf("Input file name = %s\n", p);
+
+    if (p == NULL)
+    {
+        printf("\nInvalid File Name... Please enter file name\n");
+        return FALSE;
+    }
+    len = strlen(p);
+
+    memcpy(filename, p, len);
+    filename[len] = '\0';
+
+    return TRUE;
+}
 int GetBdAddr(char *p, bt_bdaddr_t *pbd_addr)
 {
     char Arr[13] = {0};

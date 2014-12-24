@@ -1479,6 +1479,33 @@ void  l2cble_sec_comp(BD_ADDR p_bda, tBT_TRANSPORT transport, void *p_ref_data, 
     }
 }
 
+#if (defined(LE_L2CAP_CFC_INCLUDED) && (LE_L2CAP_CFC_INCLUDED == TRUE))
+/*******************************************************************************
+**
+** Function         L2CA_LE_SetFlowControlCredits
+**
+** Description      This function sets the credits for LE incase credits did
+**                  not set during the LE connection establishment.
+**
+** Returns          TRUE if flow control set,false otherwise
+**
+*******************************************************************************/
+BOOLEAN L2CA_LE_SetFlowControlCredits (UINT16 cid, UINT16 credits)
+{
+    tL2C_CCB  *p_ccb;
+    L2CAP_TRACE_WARNING ("LE-L2CAP: %s credits: %d  CID: 0x%04x", __FUNCTION__,
+                                                                credits, cid);
+    /* Find the channel control block. We don't know the link it is on. */
+    if ((p_ccb = l2cu_find_ccb_by_cid (NULL, cid)) == NULL)
+    {
+        L2CAP_TRACE_WARNING ("LE-L2CAP: no CCB found");
+        return (FALSE);
+    }
+	l2cble_send_flow_control_credit(p_ccb, credits);
+        return (TRUE);
+}
+
+#endif //LE_L2CAP_CFC_INCLUDED
 /*******************************************************************************
 **
 ** Function         l2ble_sec_access_req
