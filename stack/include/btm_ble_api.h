@@ -1874,6 +1874,28 @@ extern tBTM_STATUS BTM_SetBleDataLength(BD_ADDR bd_addr, UINT16 tx_pdu_length);
 **
 *******************************************************************************/
 extern BOOLEAN BTM_GetRemoteDeviceName(BD_ADDR bda, BD_NAME bdname);
+/*******************************************************************************
+**
+** Function         BTM_SetBlePhy
+**
+** Description      This function is called to set BLE Tx and Rx Phy
+**
+** Returns          BTM_SUCCESS if success; otherwise failed.
+**
+*******************************************************************************/
+extern tBTM_STATUS BTM_SetBlePhy(BD_ADDR bd_addr, UINT8 all_phy, UINT8 tx_phy,
+                                 UINT8 rx_phy, UINT16 phy_options);
+
+/*******************************************************************************
+**
+** Function         BTM_SetDefaultBlePhy
+**
+** Description      This function is to set default BLE tx and rx PHY
+**
+** Returns          BTM_SUCCESS if success; otherwise failed.
+**
+*******************************************************************************/
+tBTM_STATUS BTM_SetDefaultBlePhy(UINT8 all_phy, UINT8 tx_phy, UINT8 rx_phy);
 
 #ifdef __cplusplus
 }

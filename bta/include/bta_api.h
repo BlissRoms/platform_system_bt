@@ -2177,6 +2177,30 @@ extern void BTA_DmBleSetDataLength(BD_ADDR remote_device, UINT16 tx_data_length)
 
 /*******************************************************************************
 **
+** Function         BTA_DmBleSetPhy
+**
+** Description      This function is to set Tx and Rx Phy for a connection
+**
+** Returns          void
+**
+*******************************************************************************/
+extern void BTA_DmBleSetPhy(BD_ADDR remote_device, UINT8 all_phy,
+                            UINT8 tx_phy, UINT8 rx_phy, UINT16 phy_options);
+
+/*******************************************************************************
+**
+** Function         BTA_DmBleSetDefaultPhy
+**
+** Description      This function is to set default Tx and Rx Phy
+**
+** Returns          void
+**
+*******************************************************************************/
+extern void BTA_DmBleSetDefaultPhy(UINT8 all_phy,
+                            UINT8 tx_phy, UINT8 rx_phy);
+
+/*******************************************************************************
+**
 ** Function         BTA_DmBleSetStorageParams
 **
 ** Description      This function is called to set the storage parameters

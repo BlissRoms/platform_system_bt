@@ -688,6 +688,8 @@ extern void btsnd_hcic_vendor_spec_cmd (void *buffer, UINT16 opcode,
 #define HCIC_PARAM_SIZE_BLE_SET_RAND_PRIV_ADDR_TIMOUT   2
 #define HCIC_PARAM_SIZE_BLE_SET_DATA_LENGTH             6
 #define HCIC_PARAM_SIZE_BLE_WRITE_EXTENDED_SCAN_PARAM  11
+#define HCIC_PARAM_SIZE_BLE_WRITE_DEFAULT_PHY          3
+#define HCIC_PARAM_SIZE_BLE_WRITE_PHY                  7
 
 /* ULP HCI command */
 extern BOOLEAN btsnd_hcic_ble_set_evt_mask (BT_EVENT_MASK event_mask);
@@ -804,6 +806,11 @@ extern BOOLEAN btsnd_hcic_ble_read_resolvable_addr_local (UINT8 addr_type_peer,
 extern BOOLEAN btsnd_hcic_ble_set_addr_resolution_enable (UINT8 addr_resolution_enable);
 
 extern BOOLEAN btsnd_hcic_ble_set_rand_priv_addr_timeout (UINT16 rpa_timout);
+
+extern BOOLEAN btsnd_hcic_ble_set_default_data_rate(UINT8 all_phy, UINT8 tx_phy, UINT8 rx_phy);
+
+extern BOOLEAN btsnd_hcic_ble_set_data_rate(UINT16 handle, UINT8 all_phy, UINT8 tx_phy,
+                                            UINT8 rx_phy, UINT16 phy_options);
 
 #endif /* BLE_INCLUDED */
 

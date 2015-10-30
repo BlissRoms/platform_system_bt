@@ -4896,6 +4896,43 @@ void bta_dm_ble_set_data_length(tBTA_DM_MSG *p_data)
 
 /*******************************************************************************
 **
+** Function         bta_dm_ble_set_phy
+**
+** Description      This function sets the tx and rx phy for a connection
+**
+** Parameters
+**
+*******************************************************************************/
+void bta_dm_ble_set_phy(tBTA_DM_MSG *p_data)
+{
+    if (BTM_SetBlePhy(p_data->ble_set_phy.remote_bda, p_data->ble_set_phy.all_phy,
+                      p_data->ble_set_phy.tx_phy, p_data->ble_set_phy.rx_phy,
+                      p_data->ble_set_phy.phy_options) != BTM_SUCCESS)
+    {
+        APPL_TRACE_ERROR("%s failed", __func__);
+    }
+}
+
+/*******************************************************************************
+**
+** Function         bta_dm_ble_set_default_phy
+**
+** Description      This function sets the default tx and rx phy
+**
+** Parameters
+**
+*******************************************************************************/
+void bta_dm_ble_set_default_phy(tBTA_DM_MSG *p_data)
+{
+    if (BTM_SetDefaultBlePhy(p_data->ble_set_default_phy.all_phy,
+                      p_data->ble_set_default_phy.tx_phy, p_data->ble_set_default_phy.rx_phy) != BTM_SUCCESS)
+    {
+        APPL_TRACE_ERROR("%s failed", __func__);
+    }
+}
+
+/*******************************************************************************
+**
 ** Function         bta_dm_ble_broadcast
 **
 ** Description      Starts or stops LE broadcasts

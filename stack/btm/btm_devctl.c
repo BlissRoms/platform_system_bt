@@ -200,6 +200,12 @@ static void reset_complete(void *result) {
     btm_ble_white_list_init(controller->get_ble_white_list_size());
     l2c_link_processs_ble_num_bufs(controller->get_acl_buffer_count_ble());
   }
+
+  if(controller->supports_ble_two_mbps_rate()) {
+      /* set 2mbps Tx and Rx if supported*/
+      btsnd_hcic_ble_set_default_data_rate(0, BTM_DATA_RATE_TWO|BTM_DATA_RATE_ONE,
+                                           BTM_DATA_RATE_TWO|BTM_DATA_RATE_ONE);
+  }
 #endif
 
   BTM_SetPinType (btm_cb.cfg.pin_type, btm_cb.cfg.pin_code, btm_cb.cfg.pin_code_len);

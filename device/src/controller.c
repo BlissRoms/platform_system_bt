@@ -32,7 +32,7 @@
 #include "osi/include/log.h"
 #include "utils/include/bt_utils.h"
 
-const bt_event_mask_t BLE_EVENT_MASK = { "\x00\x00\x00\x00\x00\x00\x06\x7f" };
+const bt_event_mask_t BLE_EVENT_MASK = { "\x00\x00\x00\x00\x00\x00\x0e\x7f" };
 
 #if (BLE_INCLUDED)
 const bt_event_mask_t CLASSIC_EVENT_MASK = { HCI_DUMO_EVENT_MASK_EXT };
@@ -448,6 +448,12 @@ static bool supports_ble_offload_features(void) {
   return ble_offload_features_supported;
 }
 
+static bool supports_ble_two_mbps_rate(void) {
+    assert(readable);
+    assert(ble_supported);
+    return HCI_LE_TWO_MBPS_SUPPORTED(features_ble.as_array);
+}
+
 static uint16_t get_acl_data_size_classic(void) {
   assert(readable);
   return acl_data_size_classic;
@@ -538,6 +544,7 @@ static const controller_t interface = {
   supports_ble_packet_extension,
   supports_ble_connection_parameters_request,
   supports_ble_privacy,
+  supports_ble_two_mbps_rate,
 
   get_acl_data_size_classic,
   get_acl_data_size_ble,

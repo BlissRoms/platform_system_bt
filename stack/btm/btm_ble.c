@@ -970,6 +970,47 @@ tBTM_SEC_ACTION btm_ble_determine_security_act(BOOLEAN is_originator, BD_ADDR bd
 
 /*******************************************************************************
 **
+** Function         BTM_SetBlePhy
+**
+** Description      This function is to set BLE tx and rx PHY
+**
+** Returns          BTM_SUCCESS if success; otherwise failed.
+**
+*******************************************************************************/
+tBTM_STATUS BTM_SetBlePhy(BD_ADDR bd_addr, UINT8 all_phy, UINT8 tx_phy,
+                          UINT8 rx_phy, UINT16 phy_options)
+{
+    tACL_CONN *p_acl = btm_bda_to_acl(bd_addr, BT_TRANSPORT_LE);
+    BTM_TRACE_DEBUG("%s: all_phy=0x%0x, tx_phy=0x%0x, rx_phy=0x%0x",
+                    __func__, all_phy, tx_phy, rx_phy);
+
+    if (!controller_get_interface()->supports_ble_two_mbps_rate())
+    {
+        BTM_TRACE_ERROR("%s failed, request not supported", __func__);
+        return BTM_ILLEGAL_VALUE;
+    }
+
+    if ((p_acl != NULL) && (!HCI_LE_TWO_MBPS_SUPPORTED(p_acl->peer_le_features)))
+    {
+        BTM_TRACE_ERROR("%s failed, peer does not support request", __func__);
+        return BTM_ILLEGAL_VALUE;
+    }
+
+    if (p_acl != NULL)
+    {
+        btsnd_hcic_ble_set_data_rate (p_acl->hci_handle, all_phy, tx_phy,
+                                      rx_phy, phy_options);
+        return BTM_SUCCESS;
+    }
+    else
+    {
+        BTM_TRACE_ERROR("%s: Wrong mode: no LE link exist or LE not supported",__func__);
+        return BTM_WRONG_MODE;
+    }
+}
+
+/*******************************************************************************
+**
 ** Function         btm_ble_start_sec_check
 **
 ** Description      This function is to check and set the security required for
@@ -1040,6 +1081,30 @@ BOOLEAN btm_ble_start_sec_check(BD_ADDR bd_addr, UINT16 psm, BOOLEAN is_originat
     BTM_SetEncryption(bd_addr, BT_TRANSPORT_LE, p_callback, p_ref_data, ble_sec_act);
 
     return FALSE;
+}
+
+/*******************************************************************************
+**
+** Function         BTM_SetDefaultBlePhy
+**
+** Description      This function is to set default BLE tx and rx PHY
+**
+** Returns          BTM_SUCCESS if success; otherwise failed.
+**
+*******************************************************************************/
+tBTM_STATUS BTM_SetDefaultBlePhy(UINT8 all_phy, UINT8 tx_phy, UINT8 rx_phy)
+{
+    BTM_TRACE_DEBUG("%s: all_phy=0x%0x, tx_phy=0x%0x, rx_phy=0x%0x",
+                    __func__, all_phy, tx_phy, rx_phy);
+
+    if (!controller_get_interface()->supports_ble_two_mbps_rate())
+    {
+        BTM_TRACE_ERROR("%s failed, request not supported", __func__);
+        return BTM_ILLEGAL_VALUE;
+    }
+
+    btsnd_hcic_ble_set_default_data_rate (all_phy, tx_phy, rx_phy);
+    return BTM_SUCCESS;
 }
 
 /*******************************************************************************

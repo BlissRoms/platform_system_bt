@@ -125,6 +125,7 @@ static void btu_ble_rc_param_req_evt(UINT8 *p);
 #if (defined BLE_PRIVACY_SPT && BLE_PRIVACY_SPT == TRUE)
 static void btu_ble_proc_enhanced_conn_cmpl (UINT8 *p, UINT16 evt_len);
 #endif
+static void btu_ble_data_rate_update_evt(UINT8 *p, UINT16 evt_len);
 
     #endif
 
@@ -332,6 +333,10 @@ void btu_hcif_process_event (UNUSED_ATTR UINT8 controller_id, BT_HDR *p_msg)
 #endif
                case HCI_BLE_DATA_LENGTH_CHANGE_EVT:
                     btu_ble_data_length_change_evt(p, hci_evt_len);
+                    break;
+
+               case HCI_BLE_PHY_UPDATE_EVT:
+                    btu_ble_data_rate_update_evt(p, hci_evt_len);
                     break;
             }
             break;
@@ -1725,6 +1730,26 @@ static void btu_ble_rc_param_req_evt(UINT8 *p)
     l2cble_process_rc_param_request_evt(handle, int_min, int_max, latency, timeout);
 }
 #endif /* BLE_LLT_INCLUDED */
+
+static void btu_ble_data_rate_update_evt(UINT8 *p, UINT16 evt_len)
+{
+    UINT8 status;
+    UINT16 handle;
+    UINT8 tx_phy;
+    UINT8 rx_phy;
+
+    if(!controller_get_interface()->supports_ble_two_mbps_rate())
+    {
+        HCI_TRACE_WARNING("%s, request not supported", __func__);
+        return;
+    }
+    STREAM_TO_UINT8(status, p);
+    STREAM_TO_UINT16(handle, p);
+    STREAM_TO_UINT8(tx_phy, p);
+    STREAM_TO_UINT8(rx_phy, p);
+    HCI_TRACE_DEBUG("%s Phy update evt, status=%d, handle = 0x%0x, tx_phy=%d, rx_phy=%d",
+                     __func__, status, handle, tx_phy, rx_phy);
+}
 
 #endif /* BLE_INCLUDED */
 

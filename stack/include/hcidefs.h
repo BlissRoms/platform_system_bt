@@ -350,6 +350,9 @@
 #define HCI_BLE_SET_RAND_PRIV_ADDR_TIMOUT   (0x002E | HCI_GRP_BLE_CMDS)
 #define HCI_BLE_SET_PRIVACY_MODE            (0x004E | HCI_GRP_BLE_CMDS)
 
+#define HCI_BLE_SET_DEFAULT_PHY_RATE        (0x0031 | HCI_GRP_BLE_CMDS)
+#define HCI_BLE_SET_PHY_RATE                (0x0032 | HCI_GRP_BLE_CMDS)
+
 /* LE Get Vendor Capabilities Command OCF */
 #define HCI_BLE_VENDOR_CAP_OCF    (0x0153 | HCI_GRP_VENDOR_SPECIFIC)
 
@@ -714,6 +717,7 @@
 #define HCI_BLE_DATA_LENGTH_CHANGE_EVT      0x07
 #define HCI_BLE_ENHANCED_CONN_COMPLETE_EVT  0x0a
 #define HCI_BLE_DIRECT_ADV_EVT              0x0b
+#define HCI_BLE_PHY_UPDATE_EVT              0x0c
 
 /* Definitions for LE Channel Map */
 #define HCI_BLE_CHNL_MAP_SIZE               5
@@ -1793,6 +1797,10 @@ typedef struct
 #define HCI_LE_FEATURE_DATA_LEN_EXT_OFF        0
 #define HCI_LE_DATA_LEN_EXT_SUPPORTED(x) ((x)[HCI_LE_FEATURE_DATA_LEN_EXT_OFF] & HCI_LE_FEATURE_DATA_LEN_EXT_MASK)
 
+/* 2Mbps support */
+#define HCI_LE_FEATURE_TWO_MBPS_MASK           0x01
+#define HCI_LE_FEATURE_TWO_MBPS                1
+#define HCI_LE_TWO_MBPS_SUPPORTED(x) ((x)[HCI_LE_FEATURE_TWO_MBPS] & HCI_LE_FEATURE_TWO_MBPS_MASK)
 /*
 **   Local Supported Commands encoding
 */

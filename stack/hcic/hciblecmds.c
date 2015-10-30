@@ -786,5 +786,46 @@ BOOLEAN btsnd_hcic_ble_set_data_length(UINT16 conn_handle, UINT16 tx_octets, UIN
     return TRUE;
 }
 
+BOOLEAN btsnd_hcic_ble_set_default_data_rate(UINT8 all_phy, UINT8 tx_phy, UINT8 rx_phy)
+{
+    BT_HDR *p = (BT_HDR *)osi_malloc(HCI_CMD_BUF_SIZE);
+    UINT8 *pp = (UINT8 *)(p + 1);;
+
+    p->len = HCIC_PREAMBLE_SIZE + HCIC_PARAM_SIZE_BLE_WRITE_DEFAULT_PHY;
+    p->offset = 0;
+
+    UINT16_TO_STREAM(pp, HCI_BLE_SET_DEFAULT_PHY_RATE);
+    UINT8_TO_STREAM(pp, HCIC_PARAM_SIZE_BLE_WRITE_DEFAULT_PHY);
+
+    UINT8_TO_STREAM(pp, all_phy);
+    UINT8_TO_STREAM(pp, tx_phy);
+    UINT8_TO_STREAM(pp, rx_phy);
+
+    btu_hcif_send_cmd (LOCAL_BR_EDR_CONTROLLER_ID, p);
+    return TRUE;
+}
+
+BOOLEAN btsnd_hcic_ble_set_data_rate(UINT16 handle, UINT8 all_phy, UINT8 tx_phy,
+                                     UINT8 rx_phy, UINT16 phy_options)
+{
+    BT_HDR *p = (BT_HDR *)osi_malloc(HCI_CMD_BUF_SIZE);
+    UINT8 *pp = (UINT8 *)(p + 1);;
+
+    p->len = HCIC_PREAMBLE_SIZE + HCIC_PARAM_SIZE_BLE_WRITE_PHY;
+    p->offset = 0;
+
+    UINT16_TO_STREAM(pp, HCI_BLE_SET_PHY_RATE);
+    UINT8_TO_STREAM(pp, HCIC_PARAM_SIZE_BLE_WRITE_PHY);
+
+    UINT16_TO_STREAM(pp, handle);
+    UINT8_TO_STREAM(pp, all_phy);
+    UINT8_TO_STREAM(pp, tx_phy);
+    UINT8_TO_STREAM(pp, rx_phy);
+    UINT16_TO_STREAM(pp, phy_options);
+
+    btu_hcif_send_cmd (LOCAL_BR_EDR_CONTROLLER_ID, p);
+    return TRUE;
+}
+
 #endif
 

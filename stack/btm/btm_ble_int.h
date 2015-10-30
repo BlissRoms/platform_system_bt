@@ -290,6 +290,10 @@ typedef struct
 #define BTM_PRIVACY_MIXED   3              /* BLE privacy mixed mode, broadcom propietary mode */
 typedef UINT8 tBTM_PRIVACY_MODE;
 
+/* 2Mbps PHY support*/
+#define BTM_DATA_RATE_TWO   2
+#define BTM_DATA_RATE_ONE   1
+
 /* data length change event callback */
 typedef void (tBTM_DATA_LENGTH_CHANGE_CBACK) (UINT16 max_tx_length, UINT16 max_rx_length);
 
