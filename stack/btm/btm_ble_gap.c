@@ -71,7 +71,7 @@ static tBTM_BLE_CTRL_FEATURES_CBACK    *p_ctrl_le_feature_rd_cmpl_cback = NULL;
 static void btm_ble_update_adv_flag(UINT8 flag);
 static void btm_ble_process_adv_pkt_cont(BD_ADDR bda, UINT8 addr_type, UINT8 evt_type, UINT8 *p);
 UINT8 *btm_ble_build_adv_data(tBTM_BLE_AD_MASK *p_data_mask, UINT8 **p_dst,
-                              tBTM_BLE_ADV_DATA *p_data);
+                              tBTM_BLE_ADV_DATA *p_data, UINT8 max_len);
 static UINT8 btm_set_conn_mode_adv_init_addr(tBTM_BLE_INQ_CB *p_cb,
                                      BD_ADDR_PTR p_peer_addr_ptr,
                                      tBLE_ADDR_TYPE *p_peer_addr_type,
@@ -557,8 +557,13 @@ static void btm_ble_vendor_capability_vsc_cmpl_cback (tBTM_VSC_CMPL *p_vcs_cplt_
          btm_cb.cmn_ble_vsc_cb.adv_inst_max, btm_cb.cmn_ble_vsc_cb.rpa_offloading,
          btm_cb.cmn_ble_vsc_cb.energy_support, btm_cb.cmn_ble_vsc_cb.extended_scan_support);
 
-    if (BTM_BleMaxMultiAdvInstanceCount() > 0)
-        btm_ble_multi_adv_init();
+    if ((btm_cb.cmn_ble_vsc_cb.adv_inst_max > 0)
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+        &&
+        (controller_get_interface()->get_ble_adv_ext_size() == 0)
+#endif
+       )
+        btm_ble_multi_adv_init(btm_cb.cmn_ble_vsc_cb.adv_inst_max);
 
     if (btm_cb.cmn_ble_vsc_cb.max_filter > 0)
         btm_ble_adv_filter_init();
@@ -723,8 +728,8 @@ BOOLEAN BTM_BleConfigPrivacy(BOOLEAN privacy_mode)
 *******************************************************************************/
 extern UINT8  BTM_BleMaxMultiAdvInstanceCount(void)
 {
-    return btm_cb.cmn_ble_vsc_cb.adv_inst_max < BTM_BLE_MULTI_ADV_MAX ?
-        btm_cb.cmn_ble_vsc_cb.adv_inst_max : BTM_BLE_MULTI_ADV_MAX;
+    return controller_get_interface()->get_ble_adv_ext_size() < BTM_BLE_MULTI_ADV_MAX ?
+        controller_get_interface()->get_ble_adv_ext_size() : BTM_BLE_MULTI_ADV_MAX;
 }
 
 #if BLE_PRIVACY_SPT == TRUE
@@ -1212,7 +1217,7 @@ tBTM_STATUS BTM_BleWriteScanRsp(tBTM_BLE_AD_MASK data_mask, tBTM_BLE_ADV_DATA *p
         return BTM_ILLEGAL_VALUE;
 
     memset(rsp_data, 0, BTM_BLE_AD_DATA_LEN);
-    btm_ble_build_adv_data(&data_mask, &p, p_data);
+    btm_ble_build_adv_data(&data_mask, &p, p_data, BTM_BLE_AD_DATA_LEN);
 
     if (btsnd_hcic_ble_set_scan_rsp_data((UINT8)(p - rsp_data), rsp_data))
     {
@@ -1255,7 +1260,7 @@ tBTM_STATUS BTM_BleWriteAdvData(tBTM_BLE_AD_MASK data_mask, tBTM_BLE_ADV_DATA *p
     p = p_cb_data->ad_data;
     p_cb_data->data_mask = data_mask;
 
-    p_cb_data->p_flags = btm_ble_build_adv_data(&mask, &p, p_data);
+    p_cb_data->p_flags = btm_ble_build_adv_data(&mask, &p, p_data, BTM_BLE_AD_DATA_LEN);
 
     p_cb_data->p_pad = p;
 
@@ -1356,12 +1361,12 @@ UINT16 BTM_BleReadConnectability()
 ** Description      This function is called build the adv data and rsp data.
 *******************************************************************************/
 UINT8 *btm_ble_build_adv_data(tBTM_BLE_AD_MASK *p_data_mask, UINT8 **p_dst,
-                              tBTM_BLE_ADV_DATA *p_data)
+                              tBTM_BLE_ADV_DATA *p_data, UINT8 max_len)
 {
     UINT32 data_mask = *p_data_mask;
     UINT8   *p = *p_dst,
     *p_flag = NULL;
-    UINT16  len = BTM_BLE_AD_DATA_LEN, cp_len = 0;
+    UINT16  len = max_len, cp_len = 0;
     UINT8   i = 0;
     tBTM_BLE_PROP_ELEM      *p_elem;
 

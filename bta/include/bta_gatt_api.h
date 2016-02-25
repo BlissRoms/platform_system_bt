@@ -146,6 +146,10 @@ typedef UINT8 tBTA_GATT_STATUS;
 #define BTA_GATTC_SCAN_FLT_PARAM_EVT 32 /* Param filter event */
 #define BTA_GATTC_SCAN_FLT_STATUS_EVT 33 /* Filter status event */
 #define BTA_GATTC_ADV_VSC_EVT         34 /* ADV VSC event */
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+#define BTA_GATTC_EXTENDED_ADV_ENB_EVT  35  /* Extended Enable ADV event */
+#define BTA_GATTC_EXTENDED_ADV_UPD_EVT  36  /* Extended Update parameter event */
+#endif
 
 typedef UINT8 tBTA_GATTC_EVT;
 

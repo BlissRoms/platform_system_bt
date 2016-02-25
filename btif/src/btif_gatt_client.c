@@ -667,6 +667,31 @@ static void btif_gattc_upstreams_evt(uint16_t event, char* p_param)
             break;
         }
 
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+        case BTA_GATTC_EXTENDED_ADV_ENB_EVT:
+        {
+            btif_gattc_cb_t *p_btif_cb = (btif_gattc_cb_t*) p_param;
+            if (0xFF != p_btif_cb->inst_id)
+                btif_multi_adv_add_instid_map(p_btif_cb->client_if, p_btif_cb->inst_id, false);
+            HAL_CBACK(bt_gatt_callbacks, client->multi_adv_enable_cb
+                    , p_btif_cb->client_if
+                    , p_btif_cb->status
+                );
+            break;
+        }
+
+        case BTA_GATTC_EXTENDED_ADV_UPD_EVT:
+        {
+            btif_gattc_cb_t *p_btif_cb = (btif_gattc_cb_t*) p_param;
+            HAL_CBACK(bt_gatt_callbacks, client->multi_adv_update_cb
+                , p_btif_cb->client_if
+                , p_btif_cb->status
+            );
+            break;
+        }
+
+#endif
+
         case BTA_GATTC_MULT_ADV_DATA_EVT:
          {
             btif_gattc_cb_t *p_btif_cb = (btif_gattc_cb_t*) p_param;
@@ -863,6 +888,16 @@ static void bta_gattc_multi_adv_cback(tBTA_BLE_MULTI_ADV_EVT event, UINT8 inst_i
         case BTA_BLE_MULTI_ADV_DATA_EVT:
             upevt = BTA_GATTC_MULT_ADV_DATA_EVT;
             break;
+
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+        case BTA_BLE_EXTENDED_ADV_ENB_EVT:
+            upevt = BTA_GATTC_EXTENDED_ADV_ENB_EVT;
+            break;
+
+        case BTA_BLE_EXTENDED_ADV_PARAM_EVT:
+            upevt = BTA_GATTC_EXTENDED_ADV_UPD_EVT;
+            break;
+#endif
 
         default:
             return;
@@ -2023,6 +2058,9 @@ static bt_status_t btif_gattc_multi_adv_enable(int client_if, int min_interval, 
     adv_cb.param.channel_map = chnl_map;
     adv_cb.param.adv_filter_policy = 0;
     adv_cb.param.tx_power = tx_power;
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+    adv_cb.param.duration = timeout_s;
+#endif
     adv_cb.timeout_s = timeout_s;
     return btif_transfer_context(btgattc_handle_event, BTIF_GATTC_ADV_INSTANCE_ENABLE,
                              (char*) &adv_cb, sizeof(btgatt_multi_adv_inst_cb), NULL);
@@ -2042,6 +2080,9 @@ static bt_status_t btif_gattc_multi_adv_update(int client_if, int min_interval, 
     adv_cb.param.channel_map = chnl_map;
     adv_cb.param.adv_filter_policy = 0;
     adv_cb.param.tx_power = tx_power;
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+    adv_cb.param.duration = timeout_s;
+#endif
     adv_cb.timeout_s = timeout_s;
     return btif_transfer_context(btgattc_handle_event, BTIF_GATTC_ADV_INSTANCE_UPDATE,
                          (char*) &adv_cb, sizeof(btgatt_multi_adv_inst_cb), NULL);

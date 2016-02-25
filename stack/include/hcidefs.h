@@ -353,6 +353,20 @@
 #define HCI_BLE_SET_DEFAULT_PHY_RATE        (0x0031 | HCI_GRP_BLE_CMDS)
 #define HCI_BLE_SET_PHY_RATE                (0x0032 | HCI_GRP_BLE_CMDS)
 
+/* BLE ADV EXTENSION COMMANDS */
+#define HCI_BLE_WRITE_EXTENDED_ADV_RPA      (0x0035 | HCI_GRP_BLE_CMDS)
+#define HCI_BLE_WRITE_EXTENDED_ADV_PARAMS   (0x0036 | HCI_GRP_BLE_CMDS)
+#define HCI_BLE_WRITE_EXTENDED_ADV_DATA     (0x0037 | HCI_GRP_BLE_CMDS)
+#define HCI_BLE_WRITE_EXTENDED_SCAN_RSP_DATA (0x0038 | HCI_GRP_BLE_CMDS)
+#define HCI_BLE_WRITE_EXTENDED_ADV_ENABLE   (0x0039 | HCI_GRP_BLE_CMDS)
+#define HCI_BLE_READ_NUM_ADV_SETS           (0x003B | HCI_GRP_BLE_CMDS)
+#define HCI_BLE_READ_MAX_ADV_LENGTH         (0x003A | HCI_GRP_BLE_CMDS)
+
+#define BTM_BLE_EXT_ADV_INT_FRAG            0x00
+#define BTM_BLE_EXT_ADV_FIRST_FRAG          0x01
+#define BTM_BLE_EXT_ADV_LAST_FRAG           0x02
+#define BTM_BLE_EXT_ADV_COMPLETE           0x03
+
 /* LE Get Vendor Capabilities Command OCF */
 #define HCI_BLE_VENDOR_CAP_OCF    (0x0153 | HCI_GRP_VENDOR_SPECIFIC)
 
@@ -718,6 +732,9 @@
 #define HCI_BLE_ENHANCED_CONN_COMPLETE_EVT  0x0a
 #define HCI_BLE_DIRECT_ADV_EVT              0x0b
 #define HCI_BLE_PHY_UPDATE_EVT              0x0c
+#if (defined BLE_EXTENDED_ADV_SUPPORT && BLE_EXTENDED_ADV_SUPPORT == TRUE)
+#define HCI_BLE_EXT_ADV_TERMINATED_EVT      0x12
+#endif
 
 /* Definitions for LE Channel Map */
 #define HCI_BLE_CHNL_MAP_SIZE               5
@@ -1801,6 +1818,12 @@ typedef struct
 #define HCI_LE_FEATURE_TWO_MBPS_MASK           0x01
 #define HCI_LE_FEATURE_TWO_MBPS                1
 #define HCI_LE_TWO_MBPS_SUPPORTED(x) ((x)[HCI_LE_FEATURE_TWO_MBPS] & HCI_LE_FEATURE_TWO_MBPS_MASK)
+
+/* Advertisement Length Extensions  */
+#define HCI_LE_FEATURE_ADV_EXT_MASK            0x10
+#define HCI_LE_FEATURE_ADV_EXT_OFF             1
+#define HCI_LE_ADV_EXTENSION_SUPPORTED(x) ((x)[HCI_LE_FEATURE_ADV_EXT_OFF] & HCI_LE_FEATURE_ADV_EXT_MASK)
+
 /*
 **   Local Supported Commands encoding
 */

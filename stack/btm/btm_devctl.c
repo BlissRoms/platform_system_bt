@@ -178,7 +178,15 @@ static void reset_complete(void *result) {
   btm_cb.ble_ctr_cb.bg_conn_type = BTM_BLE_CONN_NONE;
   btm_cb.ble_ctr_cb.p_select_cback = NULL;
   gatt_reset_bgdev_list();
-  btm_ble_multi_adv_init();
+
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+  if (controller->supports_ble() && controller->supports_ble_extended_advertisements() &&
+      controller->get_ble_adv_ext_size() > 0) {
+    // provide an extra instance to accomodate for the 0th instance
+    btm_ble_multi_adv_init(controller->get_ble_adv_ext_size() + 1);
+  }
+#endif
+
 #endif
 
   btm_pm_reset();

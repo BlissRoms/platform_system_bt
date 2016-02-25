@@ -2046,16 +2046,16 @@ void btm_ble_conn_complete(UINT8 *p, UINT16 evt_len, BOOLEAN enhanced)
             l2cble_conn_comp (handle, role, bda, bda_type, conn_interval,
                               conn_latency, conn_timeout);
 
-#if (BLE_PRIVACY_SPT == TRUE)
-            if (enhanced)
-            {
-                btm_ble_refresh_local_resolvable_private_addr(bda, local_rpa);
-
-                if (peer_addr_type & BLE_ADDR_TYPE_ID_BIT)
-                    btm_ble_refresh_peer_resolvable_private_addr(bda, peer_rpa, BLE_ADDR_RANDOM);
-            }
-#endif
         }
+#if (BLE_PRIVACY_SPT == TRUE)
+        if (enhanced)
+        {
+            btm_ble_refresh_local_resolvable_private_addr(bda, local_rpa);
+
+            if (peer_addr_type & BLE_ADDR_TYPE_ID_BIT)
+                btm_ble_refresh_peer_resolvable_private_addr(bda, peer_rpa, BLE_ADDR_RANDOM);
+        }
+#endif
     }
     else
     {

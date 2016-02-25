@@ -610,6 +610,12 @@ BOOLEAN btm_ble_suspend_resolving_list_activity(void)
     if (btm_ble_suspend_bg_conn())
         p_ble_cb->suspended_rl_state |= BTM_BLE_RL_INIT;
 
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+    /* Disable extended adv sets if any is enabled*/
+    p_ble_cb->suspended_rl_state |= BTM_BLE_RL_EXT_ADV;
+    btm_ble_multi_adv_enable_all(FALSE);
+#endif
+
     return TRUE;
 }
 
@@ -636,6 +642,9 @@ void btm_ble_resume_resolving_list_activity(void)
 
     if  (p_ble_cb->suspended_rl_state & BTM_BLE_RL_INIT)
         btm_ble_resume_bg_conn();
+
+    if  (p_ble_cb->suspended_rl_state & BTM_BLE_RL_EXT_ADV)
+        btm_ble_multi_adv_enable_all(TRUE);
 
     p_ble_cb->suspended_rl_state = BTM_BLE_RL_IDLE;
 }
@@ -746,6 +755,61 @@ BOOLEAN btm_ble_disable_resolving_list(UINT8 rl_mask, BOOLEAN to_resume )
 
     return TRUE;
 }
+
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+/*******************************************************************************
+**
+** Function         btm_ble_add_multi_adv_rpa
+**
+** Description      This function adds a dummy rpa to the resolving list for
+**                  auto generating the mutli adv set rpa
+**
+** Parameters       peer rpa to be added, addr_type
+**
+** Returns          TRUE if device added, otherwise false
+**
+*******************************************************************************/
+BOOLEAN btm_ble_add_multi_adv_rpa(BD_ADDR bda, tBLE_ADDR_TYPE addr_type)
+{
+    BOOLEAN rt = FALSE;
+    UINT8 rl_mask = btm_cb.ble_ctr_cb.rl_state;
+    BTM_TRACE_DEBUG("%s, mask = %d", __func__, rl_mask);
+    /* if controller does not support RPA offloading or privacy 1.2, skip */
+    if (controller_get_interface()->get_ble_resolving_list_max_size() == 0) {
+        BTM_TRACE_ERROR("%s, resolving list not available", __func__);
+        return rt;
+    }
+
+    if (!controller_get_interface()->supports_ble_privacy()) {
+        BTM_TRACE_ERROR("%s, privacy not supported", __func__);
+        return rt;
+    }
+
+    if (btm_cb.ble_ctr_cb.resolving_list_avail_size == 0) {
+        BTM_TRACE_ERROR("%s, resolving list already full", __func__);
+        return rt;
+    }
+
+    if (rl_mask)
+    {
+        if (!btm_ble_disable_resolving_list (rl_mask, FALSE)) {
+            return rt;
+        }
+    }
+
+    UINT8 *local_irk = btm_cb.devcb.id_keys.irk;
+    BT_OCTET16 peer_irk = {0};
+    BTM_TRACE_DEBUG("%s:adding device to controller resolving list", __func__);
+    rt = btsnd_hcic_ble_add_device_resolving_list(addr_type, bda, peer_irk, local_irk);
+
+    if (rt)
+        btm_ble_enq_resolving_list_pending(bda, BTM_BLE_META_ADD_IRK_ENTRY);
+
+    if (rl_mask)
+        btm_ble_enable_resolving_list(rl_mask);
+    return rt;
+}
+#endif
 
 /*******************************************************************************
 **

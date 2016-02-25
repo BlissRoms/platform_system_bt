@@ -60,6 +60,7 @@ typedef struct controller_t {
   bool (*supports_ble_connection_parameters_request)(void);
   bool (*supports_ble_privacy)(void);
   bool (*supports_ble_two_mbps_rate)(void);
+  bool (*supports_ble_extended_advertisements)(void);
 
   // Get the cached acl data sizes for the controller.
   uint16_t (*get_acl_data_size_classic)(void);
@@ -83,6 +84,9 @@ typedef struct controller_t {
   void (*set_ble_resolving_list_max_size)(int resolving_list_max_size);
   uint8_t *(*get_local_supported_codecs)(uint8_t *number_of_codecs);
   bool (*supports_ble_offload_features)(void);
+
+  uint8_t (*get_ble_adv_ext_size)(void);
+  void (*set_ble_adv_ext_size)(int adv_ext_size);
 } controller_t;
 
 const controller_static_t *controller_get_static_interface();

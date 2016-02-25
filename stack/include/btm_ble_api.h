@@ -49,6 +49,14 @@ typedef UINT8 tBTM_BLE_CHNL_MAP[CHNL_MAP_LEN];
 #define BTM_BLE_UNKNOWN_EVT     0xff
 
 typedef UINT8 tBTM_BLE_EVT;
+
+#define BTM_BLE_EXT_CONNECT_EVT        0x0013
+#define BTM_BLE_EXT_CONNECT_DIR_EVT    0x001D
+#define BTM_BLE_EXT_DISCOVER_EVT       0x0012
+#define BTM_BLE_EXT_NON_CONNECT_EVT    0x0010
+#define BTM_BLE_EXT_CONNECT_LO_DUTY_DIR_EVT   0x0015
+typedef UINT16 tBTM_BLE_EXT_EVT;
+
 typedef UINT8 tBTM_BLE_CONN_MODE;
 
 typedef UINT32 tBTM_BLE_REF_VALUE;
@@ -466,8 +474,14 @@ typedef struct
 }tBTM_BLE_ADV_DATA;
 
 #ifndef BTM_BLE_MULTI_ADV_MAX
+
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+#define BTM_BLE_MULTI_ADV_MAX   17 /* An extra instance for Extended adv in order to use the 0 inst_id*/
+#else
 #define BTM_BLE_MULTI_ADV_MAX   16 /* controller returned adv_inst_max should be less
                                       than this number */
+#endif
+
 #endif
 
 #define BTM_BLE_MULTI_ADV_INVALID   0
@@ -476,18 +490,28 @@ typedef struct
 #define BTM_BLE_MULTI_ADV_DISABLE_EVT       2
 #define BTM_BLE_MULTI_ADV_PARAM_EVT         3
 #define BTM_BLE_MULTI_ADV_DATA_EVT          4
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+#define BTM_BLE_EXTENDED_ADV_ENB_EVT        5
+#define BTM_BLE_EXTENDED_ADV_PARAM_EVT      6
+#endif
 typedef UINT8 tBTM_BLE_MULTI_ADV_EVT;
 
 #define BTM_BLE_MULTI_ADV_DEFAULT_STD 0
 
 typedef struct
 {
-    UINT16          adv_int_min;
-    UINT16          adv_int_max;
+    UINT32          adv_int_min;
+    UINT32          adv_int_max;
     UINT8           adv_type;
     tBTM_BLE_ADV_CHNL_MAP channel_map;
     tBTM_BLE_AFP    adv_filter_policy;
     tBTM_BLE_ADV_TX_POWER tx_power;
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+    UINT8           sec_adv_max_skip;
+    UINT8           sec_adv_phy;
+    UINT8           scan_req_notf_enb;
+    UINT16          duration;
+#endif
 }tBTM_BLE_ADV_PARAMS;
 
 typedef struct
@@ -511,6 +535,11 @@ typedef struct
     tBTM_BLE_MULTI_ADV_CBACK    *p_cback;
     void                        *p_ref;
     UINT8                       index;
+    UINT16                      len;
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+    UINT16                      duration;
+    tBTM_BLE_EXT_EVT            evt_prop;
+#endif
 }tBTM_BLE_MULTI_ADV_INST;
 
 typedef struct
@@ -525,6 +554,15 @@ typedef struct
     tBTM_BLE_MULTI_ADV_INST *p_adv_inst; /* dynamic array to store adv instance */
     tBTM_BLE_MULTI_ADV_OPQ  op_q;
 }tBTM_BLE_MULTI_ADV_CB;
+
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+typedef struct
+{
+    UINT8     *set_ids;
+    UINT16    *durations;
+    UINT8     *max_adv_events;
+}tBTM_BLE_EXT_ADV_ENABLE_CB;
+#endif
 
 typedef UINT8 tGATT_IF;
 
@@ -1897,6 +1935,32 @@ extern tBTM_STATUS BTM_SetBlePhy(BD_ADDR bd_addr, UINT8 all_phy, UINT8 tx_phy,
 *******************************************************************************/
 tBTM_STATUS BTM_SetDefaultBlePhy(UINT8 all_phy, UINT8 tx_phy, UINT8 rx_phy);
 
+
+/*******************************************************************************
+**
+** Function         BTM_BleWriteExtendedAdvData
+**
+** Description      This function configure a Multi-ADV instance with the specified
+**                  adv data or scan response data.
+**
+** Parameters       inst_id: adv instance ID
+**                  is_scan_rsp: is this scan response. if no, set as adv data.
+**                  data_mask: adv data mask.
+**                  p_data: pointer to the adv data structure.
+**                  operation:
+**                  0x00: Intermediate fragment
+**                  0x01: first fragment
+**                  0x02: Last fragment
+**                  0x03: complete data, ctrlr fragmentation permitted
+**                  0x04: complete data, ctrlr fragmentation not permitted
+**
+** Returns          status
+**
+*******************************************************************************/
+tBTM_STATUS BTM_BleWriteExtendedAdvData (UINT8 inst_id, BOOLEAN is_scan_rsp,
+                                    tBTM_BLE_AD_MASK data_mask,
+                                    UINT8 operation,
+                                    tBTM_BLE_ADV_DATA *p_data);
 #ifdef __cplusplus
 }
 #endif

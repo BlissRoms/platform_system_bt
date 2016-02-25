@@ -38,6 +38,7 @@ typedef struct {
   BT_HDR *(*make_ble_read_supported_states)(void);
   BT_HDR *(*make_ble_read_local_supported_features)(void);
   BT_HDR *(*make_ble_read_resolving_list_size)(void);
+  BT_HDR *(*make_ble_read_adv_ext_size)(void);
   BT_HDR *(*make_ble_read_suggested_default_data_length)(void);
   BT_HDR *(*make_ble_set_event_mask)(const bt_event_mask_t *event_mask);
   BT_HDR *(*make_read_local_supported_codecs)(void);

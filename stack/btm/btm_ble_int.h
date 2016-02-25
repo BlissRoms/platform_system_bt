@@ -50,8 +50,9 @@
 #define BTM_BLE_NAME_REQUEST    0x40
 #define BTM_BLE_OBSERVE         0x80
 
-#define BTM_BLE_MAX_WL_ENTRY        1
-#define BTM_BLE_AD_DATA_LEN         31
+#define BTM_BLE_MAX_WL_ENTRY           1
+#define BTM_BLE_AD_DATA_LEN            31
+#define BTM_BLE_EXTENDED_AD_DATA_LEN   252
 
 #define BTM_BLE_ENC_MASK    0x03
 
@@ -217,6 +218,9 @@ typedef UINT8 tBTM_BLE_WL_STATE;
 #define BTM_BLE_RL_INIT         1
 #define BTM_BLE_RL_SCAN         2
 #define BTM_BLE_RL_ADV          4
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+#define BTM_BLE_RL_EXT_ADV      8
+#endif
 typedef UINT8 tBTM_BLE_RL_STATE;
 
 /* BLE connection state */
@@ -379,7 +383,7 @@ extern void btm_read_ble_local_supported_states_complete(UINT8 *p, UINT16 evt_le
 extern tBTM_BLE_CONN_ST btm_ble_get_conn_st(void);
 extern void btm_ble_set_conn_st(tBTM_BLE_CONN_ST new_st);
 extern UINT8 *btm_ble_build_adv_data(tBTM_BLE_AD_MASK *p_data_mask, UINT8 **p_dst,
-                                     tBTM_BLE_ADV_DATA *p_data);
+                                     tBTM_BLE_ADV_DATA *p_data, UINT8 max_len);
 extern tBTM_STATUS btm_ble_start_adv(void);
 extern tBTM_STATUS btm_ble_stop_adv(void);
 extern tBTM_STATUS btm_ble_start_scan(void);
@@ -464,8 +468,15 @@ extern void btm_ble_resolving_list_init(UINT8 max_irk_list_sz);
 extern void btm_ble_resolving_list_cleanup(void);
 #endif
 
+#if (defined BLE_EXTENDED_ADV_SUPPORT && BLE_EXTENDED_ADV_SUPPORT == TRUE)
+extern void btm_ble_read_inst_length_complete (UINT8* p, UINT16 evt_len);
+extern void btm_ble_adv_extension_operation_complete (UINT8* p, UINT16 hcidm);
+extern void btm_ble_adv_set_terminated_evt (UINT8* p);
+extern void btm_ble_multi_adv_enable_all(UINT8 enable);
+#endif
+
 extern void btm_ble_multi_adv_configure_rpa (tBTM_BLE_MULTI_ADV_INST *p_inst);
-extern void btm_ble_multi_adv_init(void);
+extern void btm_ble_multi_adv_init(UINT8 max_adv_inst);
 extern void* btm_ble_multi_adv_get_ref(UINT8 inst_id);
 extern void btm_ble_multi_adv_cleanup(void);
 extern void btm_ble_multi_adv_reenable(UINT8 inst_id);

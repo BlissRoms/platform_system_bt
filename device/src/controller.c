@@ -75,6 +75,7 @@ static bt_device_features_t features_ble;
 static uint16_t ble_suggested_default_data_length;
 static uint8_t local_supported_codecs[MAX_LOCAL_SUPPORTED_CODECS_SIZE];
 static uint8_t number_of_local_supported_codecs = 0;
+static uint8_t ble_adv_ext_size;
 
 static bool readable;
 static bool ble_supported;
@@ -275,6 +276,13 @@ static future_t *start_up(void) {
             &ble_suggested_default_data_length);
     }
 
+    if (HCI_LE_ADV_EXTENSION_SUPPORTED(features_ble.as_array)) {
+        response = AWAIT_COMMAND(packet_factory->make_ble_read_adv_ext_size());
+        packet_parser->parse_ble_read_adv_ext_size_response(
+            response,
+            &ble_adv_ext_size);
+    }
+
     // Set the ble event mask next
     response = AWAIT_COMMAND(packet_factory->make_ble_set_event_mask(&BLE_EVENT_MASK));
     packet_parser->parse_generic_command_complete(response);
@@ -430,6 +438,12 @@ static bool supports_ble_privacy(void) {
   return HCI_LE_ENHANCED_PRIVACY_SUPPORTED(features_ble.as_array);
 }
 
+static bool supports_ble_extended_advertisements(void) {
+  assert(readable);
+  assert(ble_supported);
+  return HCI_LE_ADV_EXTENSION_SUPPORTED(features_ble.as_array);
+}
+
 static bool supports_ble_packet_extension(void) {
   assert(readable);
   assert(ble_supported);
@@ -518,6 +532,18 @@ static const controller_static_t static_interface = {
   enable_soc_logging
 };
 
+static uint8_t get_ble_adv_ext_size(void) {
+    assert(readable);
+    assert(ble_supported);
+    return ble_adv_ext_size;
+}
+
+static void set_ble_adv_ext_size(int adv_sets) {
+    assert(readable);
+    assert(ble_supported);
+    ble_adv_ext_size = adv_sets;
+}
+
 static const controller_t interface = {
   get_is_ready,
 
@@ -545,6 +571,7 @@ static const controller_t interface = {
   supports_ble_connection_parameters_request,
   supports_ble_privacy,
   supports_ble_two_mbps_rate,
+  supports_ble_extended_advertisements,
 
   get_acl_data_size_classic,
   get_acl_data_size_ble,
@@ -561,7 +588,10 @@ static const controller_t interface = {
   get_ble_resolving_list_max_size,
   set_ble_resolving_list_max_size,
   get_local_supported_codecs,
-  supports_ble_offload_features
+  supports_ble_offload_features,
+
+  get_ble_adv_ext_size,
+  set_ble_adv_ext_size
 };
 
 const controller_static_t *controller_get_static_interface() {

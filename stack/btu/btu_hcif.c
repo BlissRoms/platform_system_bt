@@ -127,6 +127,9 @@ static void btu_ble_proc_enhanced_conn_cmpl (UINT8 *p, UINT16 evt_len);
 #endif
 static void btu_ble_data_rate_update_evt(UINT8 *p, UINT16 evt_len);
 
+#if (defined BLE_EXTENDED_ADV_SUPPORT && BLE_EXTENDED_ADV_SUPPORT == TRUE)
+static void btu_ble_adv_terminated_evt (UINT8* p);
+#endif
     #endif
 
 /*******************************************************************************
@@ -338,6 +341,11 @@ void btu_hcif_process_event (UNUSED_ATTR UINT8 controller_id, BT_HDR *p_msg)
                case HCI_BLE_PHY_UPDATE_EVT:
                     btu_ble_data_rate_update_evt(p, hci_evt_len);
                     break;
+#if (defined BLE_EXTENDED_ADV_SUPPORT && BLE_EXTENDED_ADV_SUPPORT == TRUE)
+               case HCI_BLE_EXT_ADV_TERMINATED_EVT:
+                    btu_ble_adv_terminated_evt(p);
+                    break;
+#endif
             }
             break;
 #endif /* BLE_INCLUDED */
@@ -890,8 +898,23 @@ static void btu_hcif_hdl_command_complete (UINT16 opcode, UINT8 *p, UINT16 evt_l
         case HCI_BLE_READ_RESOLVABLE_ADDR_LOCAL:
         case HCI_BLE_SET_ADDR_RESOLUTION_ENABLE:
         case HCI_BLE_SET_RAND_PRIV_ADDR_TIMOUT:
-            break;
+             break;
 #endif
+        /* adv extension complete events*/
+#if (defined BLE_EXTENDED_ADV_SUPPORT && BLE_EXTENDED_ADV_SUPPORT == TRUE)
+        case HCI_BLE_WRITE_EXTENDED_ADV_RPA:
+        case HCI_BLE_WRITE_EXTENDED_ADV_DATA:
+        case HCI_BLE_WRITE_EXTENDED_SCAN_RSP_DATA:
+        case HCI_BLE_WRITE_EXTENDED_ADV_PARAMS:
+        case HCI_BLE_WRITE_EXTENDED_ADV_ENABLE:
+            btm_ble_adv_extension_operation_complete(p, opcode);
+            break;
+        case HCI_BLE_READ_MAX_ADV_LENGTH:
+            btm_ble_read_inst_length_complete (p, evt_len);
+            break;
+
+#endif
+
 #endif /* (BLE_INCLUDED == TRUE) */
 
         default:
@@ -1647,6 +1670,14 @@ static void btu_ble_ll_conn_complete_evt ( UINT8 *p, UINT16 evt_len)
 {
     btm_ble_conn_complete(p, evt_len, FALSE);
 }
+
+#if (defined BLE_EXTENDED_ADV_SUPPORT && BLE_EXTENDED_ADV_SUPPORT == TRUE)
+static void btu_ble_adv_terminated_evt (UINT8 *p)
+{
+    btm_ble_adv_set_terminated_evt(p);
+}
+#endif
+
 #if (defined BLE_PRIVACY_SPT && BLE_PRIVACY_SPT == TRUE)
 static void btu_ble_proc_enhanced_conn_cmpl( UINT8 *p, UINT16 evt_len)
 {

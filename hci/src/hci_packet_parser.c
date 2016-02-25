@@ -207,6 +207,17 @@ static void parse_ble_read_resolving_list_size_response(
   buffer_allocator->free(response);
 }
 
+static void parse_ble_read_adv_ext_size_response(
+    BT_HDR *response,
+    uint8_t *ble_adv_ext_size) {
+
+  uint8_t *stream = read_command_complete_header(response, HCI_BLE_READ_NUM_ADV_SETS, 1 /* bytes after */);
+  assert(stream != NULL);
+  STREAM_TO_UINT8(*ble_adv_ext_size, stream);
+
+  buffer_allocator->free(response);
+}
+
 static void parse_ble_read_suggested_default_data_length_response(
     BT_HDR *response,
     uint16_t *ble_default_packet_length_ptr) {
@@ -273,6 +284,7 @@ static const hci_packet_parser_t interface = {
   parse_ble_read_supported_states_response,
   parse_ble_read_local_supported_features_response,
   parse_ble_read_resolving_list_size_response,
+  parse_ble_read_adv_ext_size_response,
   parse_ble_read_suggested_default_data_length_response,
   parse_read_local_supported_codecs_response,
   parse_ble_read_offload_features_response

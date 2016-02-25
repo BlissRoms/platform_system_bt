@@ -392,12 +392,18 @@ typedef UINT8 tBTA_BLE_ADV_TX_POWER;
 /* advertising instance parameters */
 typedef struct
 {
-    UINT16                  adv_int_min;            /* minimum adv interval */
-    UINT16                  adv_int_max;            /* maximum adv interval */
+    UINT32                  adv_int_min;            /* minimum adv interval */
+    UINT32                  adv_int_max;            /* maximum adv interval */
     tBTA_BLE_ADV_EVT        adv_type;               /* adv event type */
     tBTA_BLE_ADV_CHNL_MAP   channel_map;            /* adv channel map */
     tBTA_BLE_AFP            adv_filter_policy;      /* advertising filter policy */
     tBTA_BLE_ADV_TX_POWER   tx_power;               /* adv tx power */
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+    UINT8                   sec_adv_max_skip;       /* max adv events skipped before AUX_ADV_IND is sent */
+    UINT8                   sec_adv_phy;            /* PHY for secondary channel */
+    UINT8                   scan_req_notf_enb;      /* send scan req notifications from controller */
+    UINT16                  duration;               /* duration of adv */
+#endif
 }tBTA_BLE_ADV_PARAMS;
 
 /* These are the fields returned in each device adv packet.  It
@@ -905,6 +911,10 @@ typedef void (tBTA_DM_SEC_CBACK)(tBTA_DM_SEC_EVT event, tBTA_DM_SEC *p_data);
 #define BTA_BLE_MULTI_ADV_DISABLE_EVT       2
 #define BTA_BLE_MULTI_ADV_PARAM_EVT         3
 #define BTA_BLE_MULTI_ADV_DATA_EVT          4
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+#define BTA_BLE_EXTENDED_ADV_ENB_EVT        5
+#define BTA_BLE_EXTENDED_ADV_PARAM_EVT      6
+#endif
 
 typedef UINT8 tBTA_BLE_MULTI_ADV_EVT;
 
