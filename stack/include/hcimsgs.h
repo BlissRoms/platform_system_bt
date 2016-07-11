@@ -656,8 +656,13 @@ extern void btsnd_hcic_vendor_spec_cmd (void *buffer, UINT16 opcode,
 #define HCIC_PARAM_SIZE_WRITE_ADV_ENABLE        1
 #define HCIC_PARAM_SIZE_BLE_WRITE_SCAN_PARAM    7
 #define HCIC_PARAM_SIZE_BLE_WRITE_SCAN_ENABLE   2
+
+#define HCIC_PARAM_SIZE_BLE_WRITE_EXT_SCAN_PARAM    8
+#define HCIC_PARAM_SIZE_BLE_WRITE_EXT_SCAN_ENABLE   6
+
 #define HCIC_PARAM_SIZE_BLE_CREATE_LL_CONN      25
 #define HCIC_PARAM_SIZE_BLE_CREATE_CONN_CANCEL  0
+#define HCIC_PARAM_SIZE_BLE_EXT_CREATE_LL_CONN  26
 #define HCIC_PARAM_SIZE_CLEAR_WHITE_LIST        0
 #define HCIC_PARAM_SIZE_ADD_WHITE_LIST          7
 #define HCIC_PARAM_SIZE_REMOVE_WHITE_LIST       7
@@ -692,10 +697,14 @@ extern void btsnd_hcic_vendor_spec_cmd (void *buffer, UINT16 opcode,
 #define HCIC_PARAM_SIZE_BLE_WRITE_PHY                  7
 
 #define HCIC_PARAM_SIZE_BLE_WRITE_EXTENDED_ADV_PARAMS  25
-#define HCIC_PARAM_SIZE_BLE_WRITE_EXTENDED_ADV_DATA    237
-#define HCIC_PARAM_SIZE_BLE_WRITE_EXTENDED_SCAN_RSP    237
+#define HCIC_PARAM_SIZE_BLE_WRITE_EXTENDED_ADV_DATA    251
+#define HCIC_PARAM_SIZE_BLE_WRITE_EXTENDED_SCAN_RSP    251
 #define HCIC_PARAM_SIZE_WRITE_EXTENDED_ADV_ENABLE      2
 #define HCIC_PARAM_SIZE_WRITE_EXTENDED_ADV_RPA         7
+
+#define HCIC_SCAN_PHY_LE_1M         1
+#define HCIC_SCAN_PHY_LE_CODED      4
+#define HCIC_SCAN_PHY_LE_1M_CODED   5
 
 /* ULP HCI command */
 extern BOOLEAN btsnd_hcic_ble_set_evt_mask (BT_EVENT_MASK event_mask);
@@ -842,6 +851,23 @@ extern BOOLEAN btsnd_hcic_ble_read_num_adv_sets (void);
 extern BOOLEAN btsnd_hcic_ble_read_extended_max_adv_len (void);
 
 extern BOOLEAN btsnd_hcic_ble_write_extended_rpa (UINT8 set_id, BD_ADDR rpa);
+
+extern BOOLEAN btsnd_hcic_ble_set_extended_scan_params (UINT8 scan_phys,
+                                                        UINT8 scan_type,
+                                                        UINT16 scan_int, UINT16 scan_win,
+                                                        UINT16 scan_int_coded, UINT16 scan_win_coded,
+                                                        UINT8 addr_type_own, UINT8 scan_filter_policy);
+
+extern BOOLEAN btsnd_hcic_ble_set_extended_scan_enable (UINT8 scan_enable, UINT8 duplicate,
+                                                        UINT16 duraton, UINT16 period);
+
+extern BOOLEAN btsnd_hcic_ble_ext_create_ll_conn (UINT8 ini_phy, UINT16 scan_int, UINT16 scan_win,
+                                                  UINT8 init_filter_policy,
+                                                  UINT8 addr_type_peer, BD_ADDR bda_peer,
+                                                  UINT8 addr_type_own,
+                                                  UINT16 conn_int_min, UINT16 conn_int_max,
+                                                  UINT16 conn_latency, UINT16 conn_timeout,
+                                                  UINT16 min_ce_len, UINT16 max_ce_len);
 #endif
 
 #endif /* BLE_INCLUDED */

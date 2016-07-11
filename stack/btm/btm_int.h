@@ -833,6 +833,7 @@ typedef struct
     UINT16                  ediv;       /* received ediv value from LTK request */
     UINT8                   key_size;
     tBTM_BLE_VSC_CB         cmn_ble_vsc_cb;
+    tBTM_BLE_ADV_EXT_CB     ble_adv_ext_cb;
 #endif
 
                                             /* Packet types supported by the local device */

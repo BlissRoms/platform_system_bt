@@ -21,6 +21,8 @@
 #include "device/include/controller.h"
 
 #include <assert.h>
+#include <string.h>
+#include <cutils/properties.h>
 
 #include "bt_types.h"
 #include "btcore/include/event_mask.h"
@@ -32,7 +34,7 @@
 #include "osi/include/log.h"
 #include "utils/include/bt_utils.h"
 
-const bt_event_mask_t BLE_EVENT_MASK = { "\x00\x00\x00\x00\x00\x00\x0e\x7f" };
+const bt_event_mask_t BLE_EVENT_MASK = { "\x00\x00\x00\x00\x00\x07\xfe\x7f" };
 
 #if (BLE_INCLUDED)
 const bt_event_mask_t CLASSIC_EVENT_MASK = { HCI_DUMO_EVENT_MASK_EXT };
@@ -83,6 +85,8 @@ static bool ble_offload_features_supported;
 static bool simple_pairing_supported;
 static bool secure_connections_supported;
 
+static bool adv_ext_enabled = false;
+
 #define AWAIT_COMMAND(command) future_await(hci->transmit_command_futured(command))
 
 // Module lifecycle functions
@@ -109,6 +113,8 @@ void send_soc_log_command(bool value) {
 
 static future_t *start_up(void) {
   BT_HDR *response;
+  int ret =0;
+  char value[PROPERTY_VALUE_MAX] = {'\0'};
 
   // Send the initial reset command
   response = AWAIT_COMMAND(packet_factory->make_reset());
@@ -229,6 +235,13 @@ static future_t *start_up(void) {
 #endif
 
 #if (BLE_INCLUDED == TRUE)
+  ret = property_get("ble.ae_supported", value, NULL);
+  LOG_INFO(LOG_TAG, "%s QCOM22:value :%s , ret =%d", __func__, value, ret);
+  if (ret) {
+    adv_ext_enabled = (strcmp(value, "true") ==0) ? true : false;
+    LOG_INFO(LOG_TAG, "%s BLE Adv Extensions enabled:%d", __func__, adv_ext_enabled);
+  }
+
   ble_supported = last_features_classic_page_index >= 1 && HCI_LE_HOST_SUPPORTED(features_classic[1].as_array);
   if (ble_supported) {
     // Request the ble white list size next
@@ -276,7 +289,7 @@ static future_t *start_up(void) {
             &ble_suggested_default_data_length);
     }
 
-    if (HCI_LE_ADV_EXTENSION_SUPPORTED(features_ble.as_array)) {
+    if (adv_ext_enabled && HCI_LE_ADV_EXTENSION_SUPPORTED(features_ble.as_array)) {
         response = AWAIT_COMMAND(packet_factory->make_ble_read_adv_ext_size());
         packet_parser->parse_ble_read_adv_ext_size_response(
             response,
@@ -441,7 +454,10 @@ static bool supports_ble_privacy(void) {
 static bool supports_ble_extended_advertisements(void) {
   assert(readable);
   assert(ble_supported);
-  return HCI_LE_ADV_EXTENSION_SUPPORTED(features_ble.as_array);
+  if(adv_ext_enabled)
+    return HCI_LE_ADV_EXTENSION_SUPPORTED(features_ble.as_array);
+  else
+    return false;
 }
 
 static bool supports_ble_packet_extension(void) {

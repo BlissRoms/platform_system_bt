@@ -394,15 +394,19 @@ typedef struct
 {
     UINT32                  adv_int_min;            /* minimum adv interval */
     UINT32                  adv_int_max;            /* maximum adv interval */
-    tBTA_BLE_ADV_EVT        adv_type;               /* adv event type */
+    UINT16                  adv_type;               /* adv event type */
     tBTA_BLE_ADV_CHNL_MAP   channel_map;            /* adv channel map */
     tBTA_BLE_AFP            adv_filter_policy;      /* advertising filter policy */
     tBTA_BLE_ADV_TX_POWER   tx_power;               /* adv tx power */
 #if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+    UINT8                   pri_phy;
     UINT8                   sec_adv_max_skip;       /* max adv events skipped before AUX_ADV_IND is sent */
     UINT8                   sec_adv_phy;            /* PHY for secondary channel */
+    UINT8                   adv_sid;
     UINT8                   scan_req_notf_enb;      /* send scan req notifications from controller */
     UINT16                  duration;               /* duration of adv */
+    UINT8                   max_ext_adv_evts;
+    UINT8                   frag_pref;
 #endif
 }tBTA_BLE_ADV_PARAMS;
 
@@ -599,6 +603,7 @@ typedef UINT8 tBTA_SIG_STRENGTH_MASK;
 #define BTA_DM_HW_ERROR_EVT             26      /* BT Chip H/W error */
 #define BTA_DM_LE_FEATURES_READ         27      /* Cotroller specific LE features are read */
 #define BTA_DM_ENER_INFO_READ           28      /* Energy info read */
+#define BTA_DM_LE_ADV_EXT_FEATURES_READ 29      /* LE Adv extension features are read */
 typedef UINT8 tBTA_DM_SEC_EVT;
 
 /* Structure associated with BTA_DM_ENABLE_EVT */
@@ -1017,6 +1022,7 @@ typedef struct
     tBTM_BLE_EVT_TYPE   ble_evt_type;
     tBT_DEVICE_TYPE     device_type;
     UINT8               flag;
+    UINT16              adv_data_len;
 #endif
 
 } tBTA_DM_INQ_RES;
@@ -1895,8 +1901,9 @@ extern void BTA_DmSetBleConnScanParams(UINT32 scan_interval,
 ** Returns          void
 **
 *******************************************************************************/
-extern void BTA_DmSetBleScanParams(tGATT_IF client_if, UINT32 scan_interval,
-                                   UINT32 scan_window, tBLE_SCAN_MODE scan_mode,
+extern void BTA_DmSetBleScanParams(tGATT_IF client_if, UINT8 scan_phys, UINT32 scan_interval,
+                                   UINT32 scan_window, UINT16 scan_interval_coded,
+                                   UINT16 scan_window_coded, tBLE_SCAN_MODE scan_mode,
                                    tBLE_SCAN_PARAM_SETUP_CBACK scan_param_setup_status_cback);
 
 /*******************************************************************************
@@ -2018,7 +2025,7 @@ extern void BTA_DmSetEncryption(BD_ADDR bd_addr, tBTA_TRANSPORT transport,
 ** Returns          void
 **
 *******************************************************************************/
-extern void BTA_DmBleObserve(BOOLEAN start, UINT8 duration,
+extern void BTA_DmBleObserve(BOOLEAN start, UINT16 duration, UINT16 period,
                              tBTA_DM_SEARCH_CBACK *p_results_cb);
 
 
@@ -2141,7 +2148,7 @@ extern void BTA_BleUpdateAdvInstParam (UINT8 inst_id,
 **
 *******************************************************************************/
 extern void BTA_BleCfgAdvInstData (UINT8 inst_id, BOOLEAN is_scan_rsp,
-                                tBTA_BLE_AD_MASK data_mask, tBTA_BLE_ADV_DATA *p_data);
+                                tBTA_BLE_AD_MASK data_mask, UINT8 frag_pref, tBTA_BLE_ADV_DATA *p_data);
 
 /*******************************************************************************
 **

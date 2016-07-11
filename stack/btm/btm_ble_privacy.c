@@ -634,6 +634,8 @@ void btm_ble_resume_resolving_list_activity(void)
 {
     tBTM_BLE_CB *p_ble_cb = &btm_cb.ble_ctr_cb;
 
+    p_ble_cb->inq_var.scan_duration = 0;
+    p_ble_cb->inq_var.scan_period = 0;
     if (p_ble_cb->suspended_rl_state & BTM_BLE_RL_ADV)
         btm_ble_start_adv();
 

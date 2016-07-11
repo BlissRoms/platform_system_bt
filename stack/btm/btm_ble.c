@@ -1863,7 +1863,7 @@ UINT8 btm_ble_br_keys_req(tBTM_SEC_DEV_REC *p_dev_rec, tBTM_LE_IO_REQ *p_data)
 ** Returns          void
 **
 *******************************************************************************/
-static void btm_ble_resolve_random_addr_on_conn_cmpl(void * p_rec, void *p_data)
+static void btm_ble_resolve_random_addr_on_conn_cmpl(void * p_rec, void *p_data, BOOLEAN extended)
 {
     UINT8   *p = (UINT8 *)p_data;
     tBTM_SEC_DEV_REC    *match_rec = (tBTM_SEC_DEV_REC *) p_rec;
@@ -1872,6 +1872,7 @@ static void btm_ble_resolve_random_addr_on_conn_cmpl(void * p_rec, void *p_data)
     BD_ADDR     bda;
     UINT16      conn_interval, conn_latency, conn_timeout;
     BOOLEAN     match = FALSE;
+    UNUSED(extended);
 
     ++p;
     STREAM_TO_UINT16   (handle, p);
@@ -2031,7 +2032,7 @@ void btm_ble_conn_complete(UINT8 *p, UINT16 evt_len, BOOLEAN enhanced)
            the device has been paired */
         if (!match && BTM_BLE_IS_RESOLVE_BDA(bda))
         {
-            btm_ble_resolve_random_addr(bda, btm_ble_resolve_random_addr_on_conn_cmpl, p_data);
+            btm_ble_resolve_random_addr(bda, btm_ble_resolve_random_addr_on_conn_cmpl, p_data, FALSE);
         }
         else
 #endif

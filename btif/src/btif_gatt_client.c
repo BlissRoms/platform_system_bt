@@ -117,6 +117,10 @@ typedef enum {
 #define ENABLE_BATCH_SCAN 1
 #define DISABLE_BATCH_SCAN 0
 
+#define SCAN_PHY_LE_1M    1
+#define SCAN_PHY_LE_CODED 4
+#define SCAN_PHY_LE_1M_CODED 5
+
 /*******************************************************************************
 **  Local type definitions
 ********************************************************************************/
@@ -199,9 +203,17 @@ typedef struct
     uint8_t     start;
     uint8_t     has_mask;
     int8_t      rssi;
+    uint8_t     scan_phys;
+    uint16_t    scan_interval_coded;
+    uint16_t    scan_window_coded;
+
+    uint16_t    duration;
+    uint16_t    period;
+
     uint8_t     flag;
     tBT_DEVICE_TYPE device_type;
     btgatt_transport_t transport;
+    UINT16      adv_data_len;
 } __attribute__((packed)) btif_gattc_cb_t;
 
 typedef struct
@@ -422,12 +434,12 @@ static void btif_gattc_update_properties ( btif_gattc_cb_t *p_btif_cb )
     bt_bdname_t bdname;
 
     p_eir_remote_name = BTM_CheckEirData(p_btif_cb->value,
-                                         BTM_EIR_COMPLETE_LOCAL_NAME_TYPE, &remote_name_len);
+                                         BTM_EIR_COMPLETE_LOCAL_NAME_TYPE, &remote_name_len, p_btif_cb->adv_data_len);
 
     if (p_eir_remote_name == NULL)
     {
         p_eir_remote_name = BTM_CheckEirData(p_btif_cb->value,
-                                BT_EIR_SHORTENED_LOCAL_NAME_TYPE, &remote_name_len);
+                                BT_EIR_SHORTENED_LOCAL_NAME_TYPE, &remote_name_len, p_btif_cb->adv_data_len);
     }
 
     if (p_eir_remote_name)
@@ -586,12 +598,12 @@ static void btif_gattc_upstreams_evt(uint16_t event, char* p_param)
             bt_property_t properties;
 
             p_eir_remote_name = BTM_CheckEirData(p_btif_cb->value,
-                                         BTM_EIR_COMPLETE_LOCAL_NAME_TYPE, &remote_name_len);
+                                                     BTM_EIR_COMPLETE_LOCAL_NAME_TYPE, &remote_name_len, p_btif_cb->adv_data_len);
 
             if (p_eir_remote_name == NULL)
             {
                 p_eir_remote_name = BTM_CheckEirData(p_btif_cb->value,
-                                BT_EIR_SHORTENED_LOCAL_NAME_TYPE, &remote_name_len);
+                                BT_EIR_SHORTENED_LOCAL_NAME_TYPE, &remote_name_len, p_btif_cb->adv_data_len);
             }
 
             if ((p_btif_cb->addr_type != BLE_ADDR_RANDOM) || (p_eir_remote_name))
@@ -1026,11 +1038,13 @@ static void bta_scan_results_cb (tBTA_DM_SEARCH_EVT event, tBTA_DM_SEARCH *p_dat
             btif_cb.rssi = p_data->inq_res.rssi;
             btif_cb.addr_type = p_data->inq_res.ble_addr_type;
             btif_cb.flag = p_data->inq_res.flag;
+            btif_cb.adv_data_len = p_data->inq_res.adv_data_len;
+
             if (p_data->inq_res.p_eir)
             {
-                memcpy(btif_cb.value, p_data->inq_res.p_eir, 62);
+                memcpy(btif_cb.value, p_data->inq_res.p_eir, p_data->inq_res.adv_data_len);
                 if (BTM_CheckEirData(p_data->inq_res.p_eir, BTM_EIR_COMPLETE_LOCAL_NAME_TYPE,
-                                      &len))
+                                                      &len, p_data->inq_res.adv_data_len))
                 {
                     p_data->inq_res.remt_name_not_required  = TRUE;
                 }
@@ -1173,11 +1187,11 @@ static void btgattc_handle_event(uint16_t event, char* p_param)
 
         case BTIF_GATTC_SCAN_START:
             btif_gattc_init_dev_cb();
-            BTA_DmBleObserve(TRUE, 0, bta_scan_results_cb);
+            BTA_DmBleObserve(TRUE, 0, 0, bta_scan_results_cb);
             break;
 
         case BTIF_GATTC_SCAN_STOP:
-            BTA_DmBleObserve(FALSE, 0, 0);
+            BTA_DmBleObserve(FALSE, 0, 0, 0);
             break;
 
         case BTIF_GATTC_OPEN:
@@ -1553,10 +1567,12 @@ static void btgattc_handle_event(uint16_t event, char* p_param)
             {
                 btgatt_multi_adv_common_data *p_multi_adv_data_cb =
                     btif_obtain_multi_adv_data_cb();
+                p_multi_adv_data_cb->inst_cb[cbindex].frag_preference = p_adv_data->frag_preference;
                 BTA_BleCfgAdvInstData(
                     (UINT8)inst_id,
                     p_adv_data->set_scan_rsp,
                     p_multi_adv_data_cb->inst_cb[cbindex].mask,
+                    p_multi_adv_data_cb->inst_cb[cbindex].frag_preference,
                     &p_multi_adv_data_cb->inst_cb[cbindex].data);
             }
             else
@@ -1602,7 +1618,8 @@ static void btgattc_handle_event(uint16_t event, char* p_param)
 
         case BTIF_GATTC_SET_SCAN_PARAMS:
         {
-            BTA_DmSetBleScanParams(p_cb->client_if, p_cb->scan_interval, p_cb->scan_window,
+            BTA_DmSetBleScanParams(p_cb->client_if, p_cb->scan_phys, p_cb->scan_interval, p_cb->scan_window,
+                                   p_cb->scan_interval_coded, p_cb->scan_window_coded,
                                    BTM_BLE_SCAN_MODE_ACTI, bta_scan_param_setup_cb);
             break;
         }
@@ -1674,6 +1691,12 @@ static bt_status_t btif_gattc_scan( bool start )
 {
     CHECK_BTGATT_INIT();
     btif_gattc_cb_t btif_cb;
+
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+    btif_cb.duration = 0;
+    btif_cb.period = 0;
+#endif
+
     return btif_transfer_context(btgattc_handle_event, start ? BTIF_GATTC_SCAN_START : BTIF_GATTC_SCAN_STOP,
                                  (char*) &btif_cb, sizeof(btif_gattc_cb_t), NULL);
 }
@@ -2026,9 +2049,23 @@ static bt_status_t btif_gattc_set_scan_parameters(int client_if, int scan_interv
 {
     CHECK_BTGATT_INIT();
     btif_gattc_cb_t btif_cb;
+
+    memset(&btif_cb, 0, sizeof(btif_gattc_cb_t));
+
     btif_cb.client_if = client_if;
     btif_cb.scan_interval = scan_interval;
     btif_cb.scan_window = scan_window;
+
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+    btif_cb.scan_phys = 0x01;/*LE 1M*/
+    btif_cb.scan_interval_coded = 0;
+    btif_cb.scan_window_coded = 0;
+
+    BTIF_TRACE_DEBUG("btif_gattc_set_scan_parameters ::scan_phys=%d scan_interval=%d scan_window= %d "
+                    "scan_interval_coded= %d scan_window_coded=%d",btif_cb.scan_phys,btif_cb.scan_interval,
+                    btif_cb.scan_window, btif_cb.scan_interval_coded, btif_cb.scan_window_coded);
+#endif
+
     return btif_transfer_context(btgattc_handle_event, BTIF_GATTC_SET_SCAN_PARAMS,
                                  (char*) &btif_cb, sizeof(btif_gattc_cb_t), NULL);
 }
@@ -2105,6 +2142,10 @@ static bt_status_t btif_gattc_multi_adv_setdata(int client_if, bool set_scan_rsp
     btif_gattc_adv_data_packager(client_if, set_scan_rsp, include_name, incl_txpower,
         min_interval, max_interval, appearance, manufacturer_len, manufacturer_data,
         service_data_len, service_data, service_uuid_len, service_uuid, &multi_adv_data_inst);
+
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+    multi_adv_data_inst.frag_preference = 0;
+#endif
 
     bt_status_t status = btif_transfer_context(
         btgattc_handle_event, BTIF_GATTC_ADV_INSTANCE_SET_DATA,

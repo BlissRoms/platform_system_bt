@@ -482,8 +482,11 @@ typedef struct
 {
     BT_HDR hdr;
     tBTA_GATTC_IF client_if;
+    UINT8  scan_phys;
     UINT32 scan_int;
     UINT32 scan_window;
+    UINT16 scan_int_coded;
+    UINT16 scan_window_coded;
     tBLE_SCAN_MODE scan_mode;
     tBLE_SCAN_PARAM_SETUP_CBACK scan_param_setup_cback;
 }tBTA_DM_API_BLE_SCAN_PARAMS;
@@ -502,6 +505,7 @@ typedef struct
     BT_HDR                  hdr;
     BOOLEAN                 start;
     UINT16                  duration;
+    UINT16                  period;
     tBTA_DM_SEARCH_CBACK * p_cback;
 }tBTA_DM_API_BLE_OBSERVE;
 
@@ -569,6 +573,7 @@ typedef struct
     BOOLEAN                 is_scan_rsp;
     tBTA_BLE_AD_MASK        data_mask;
     tBTA_BLE_ADV_DATA       data;
+    UINT8                   frag_pref;
 }tBTA_DM_API_BLE_MULTI_ADV_DATA;
 
 typedef struct

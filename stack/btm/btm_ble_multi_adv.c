@@ -21,6 +21,7 @@
 
 #include "bt_target.h"
 #include "device/include/controller.h"
+#include "stack_config.h"
 
 #if (BLE_INCLUDED == TRUE)
 #include "bt_types.h"
@@ -64,10 +65,6 @@ tBTM_BLE_EXT_ADV_ENABLE_CB btm_ble_ext_enable_cb;
 UINT8 wipower_inst_id = BTM_BLE_MULTI_ADV_DEFAULT_STD;
 #endif
 
-#ifdef WIPOWER_SUPPORTED
-UINT8 wipower_inst_id = BTM_BLE_MULTI_ADV_DEFAULT_STD;
-#endif
-
 /************************************************************************************
 **  Externs
 ************************************************************************************/
@@ -91,7 +88,7 @@ static inline BOOLEAN is_btm_multi_adv_cb_valid()
 static tBTM_STATUS btm_ble_extended_adv_set_params (tBTM_BLE_MULTI_ADV_INST *p_inst,
                                              tBTM_BLE_ADV_PARAMS *p_params,
                                              UINT8 cb_evt);
-static tBTM_STATUS btm_ble_enable_extended_adv (BOOLEAN enable, UINT8 inst_id, UINT16 duration, UINT8 cb_evt);
+static tBTM_STATUS btm_ble_enable_extended_adv (BOOLEAN enable, UINT8 inst_id, UINT16 duration, UINT8 max_ext_adv_evts, UINT8 cb_evt);
 #endif
 
 /*******************************************************************************
@@ -537,6 +534,29 @@ void btm_ble_multi_adv_configure_rpa (tBTM_BLE_MULTI_ADV_INST *p_inst)
 
 /*******************************************************************************
 **
+** Function         btm_ble_update_multi_adv_inst_data_length
+**
+** Description      This function set the random address for the adv instance
+**
+** Parameters       advertise parameters used for this instance.
+**
+** Returns          none
+**
+*******************************************************************************/
+void btm_ble_update_multi_adv_inst_data_length (UINT16 inst_len)
+{
+    UINT8 index;
+    tBTM_BLE_MULTI_ADV_INST *p_inst = &btm_multi_adv_cb.p_adv_inst[0];
+    BTM_TRACE_ERROR("btm_ble_update_multi_adv_inst_data_length inst_len:%d",inst_len);
+
+    for (index = 0; index <  BTM_BleMaxMultiAdvInstanceCount() - 1; index++, p_inst++)
+    {
+        p_inst->len = inst_len;
+    }
+}
+
+/*******************************************************************************
+**
 ** Function         btm_ble_multi_adv_reenable
 **
 ** Description      This function re-enable adv instance upon a connection establishment.
@@ -677,7 +697,7 @@ tBTM_STATUS BTM_BleEnableAdvInstance (tBTM_BLE_ADV_PARAMS *p_params,
                     btm_ble_enable_resolving_list (BTM_BLE_RL_EXT_ADV);
                     p_inst->in_use = TRUE;
                     rt = btm_ble_enable_extended_adv (TRUE, p_inst->inst_id,
-                                                      p_inst->duration, BTM_BLE_EXTENDED_ADV_ENB_EVT);
+                                                      p_inst->duration, p_params->max_ext_adv_evts, BTM_BLE_EXTENDED_ADV_ENB_EVT);
                 }
                 else
 #endif
@@ -743,7 +763,7 @@ tBTM_STATUS BTM_BleUpdateAdvInstParam (UINT8 inst_id, tBTM_BLE_ADV_PARAMS *p_par
         else {
 #if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
             if (controller_get_interface()->supports_ble_extended_advertisements())
-                btm_ble_enable_extended_adv(FALSE, inst_id, 0, 0);
+                btm_ble_enable_extended_adv(FALSE, inst_id, 0, 0/*p_params->max_ext_adv_evts*/, 0);
             else
 #endif
             {
@@ -766,7 +786,7 @@ tBTM_STATUS BTM_BleUpdateAdvInstParam (UINT8 inst_id, tBTM_BLE_ADV_PARAMS *p_par
         if (BTM_CMD_STARTED == rt) {
 #if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
             if (controller_get_interface()->supports_ble_extended_advertisements())
-                rt = btm_ble_enable_extended_adv(TRUE, inst_id, p_inst->duration, cb_evt);
+                rt = btm_ble_enable_extended_adv(TRUE, inst_id, p_inst->duration, p_params->max_ext_adv_evts, cb_evt);
             else
 #endif
             {
@@ -793,7 +813,7 @@ tBTM_STATUS BTM_BleUpdateAdvInstParam (UINT8 inst_id, tBTM_BLE_ADV_PARAMS *p_par
 **
 *******************************************************************************/
 tBTM_STATUS BTM_BleCfgAdvInstData (UINT8 inst_id, BOOLEAN is_scan_rsp,
-                                    tBTM_BLE_AD_MASK data_mask,
+                                    tBTM_BLE_AD_MASK data_mask, UINT8 frag_pref,
                                     tBTM_BLE_ADV_DATA *p_data)
 {
     UINT8       param[BTM_BLE_MULTI_ADV_WRITE_DATA_LEN], *pp = param;
@@ -808,7 +828,7 @@ tBTM_STATUS BTM_BleCfgAdvInstData (UINT8 inst_id, BOOLEAN is_scan_rsp,
     if (controller_get_interface()->supports_ble_extended_advertisements())
     {
         return BTM_BleWriteExtendedAdvData (inst_id, is_scan_rsp, data_mask,
-                                            BTM_BLE_EXT_ADV_COMPLETE ,p_data);
+                                            BTM_BLE_EXT_ADV_COMPLETE ,frag_pref, p_data);
     }
 #endif
 
@@ -885,7 +905,8 @@ tBTM_STATUS BTM_BleDisableAdvInstance (UINT8 inst_id)
         tBTM_BLE_MULTI_ADV_INST *p_inst = &btm_multi_adv_cb.p_adv_inst[inst_id - 1];
         if (controller_get_interface()->supports_ble_extended_advertisements()) {
             rt = btm_ble_enable_extended_adv (FALSE, inst_id,
-                                                     p_inst->duration, BTM_BLE_MULTI_ADV_DISABLE_EVT);
+                                                     p_inst->duration, 0/*p_params->max_ext_adv_evts*/,
+                                                     BTM_BLE_MULTI_ADV_DISABLE_EVT);
         }
         else
 #endif
@@ -1022,12 +1043,6 @@ void btm_ble_multi_adv_init(UINT8 max_adv_inst)
     {
         BTM_RegisterForVSEvents(btm_ble_multi_adv_vse_cback, TRUE);
     }
-#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
-    else {
-        // Initialize the sizes of all instances
-        btm_ble_extended_configure_inst_size();
-    }
-#endif
 }
 
 /*******************************************************************************
@@ -1104,11 +1119,10 @@ void* btm_ble_multi_adv_get_ref(UINT8 inst_id)
 ** Returns          status
 **
 *******************************************************************************/
-tBTM_STATUS btm_ble_enable_extended_adv (BOOLEAN enable, UINT8 inst_id, UINT16 duration, UINT8 cb_evt)
+tBTM_STATUS btm_ble_enable_extended_adv (BOOLEAN enable, UINT8 inst_id, UINT16 duration, UINT8 max_ext_adv_evts, UINT8 cb_evt)
 {
     UINT8           enb = enable ? 1: 0;
     tBTM_STATUS     rt;
-    UINT8           max_ext_events = 0x00;
 
     BTM_TRACE_EVENT ("%s: enb %d, Inst ID %d, dur = %d(s)",__func__, enb,inst_id, duration);
     inst_id = inst_id - 1;
@@ -1118,13 +1132,47 @@ tBTM_STATUS btm_ble_enable_extended_adv (BOOLEAN enable, UINT8 inst_id, UINT16 d
                                     1, //Num of sets
                                     &inst_id,
                                     &duration,
-                                    &max_ext_events))
+                                    &max_ext_adv_evts))
                                     == BTM_CMD_STARTED)
     {
         btm_ble_multi_adv_enq_op_q(BTM_BLE_MULTI_ADV_ENB, inst_id + 1, cb_evt);
     }
     return rt;
 }
+
+/*******************************************************************************
+**
+** Function         btm_ble_save_extended_adv_params
+**
+** Description      This function sets the extended adv params
+**
+** Parameters       p_inst: pointer to instance variable
+**                  p_params: adv parameters
+**                  cb_evt: callback event
+**
+** Returns          status
+**
+*******************************************************************************/
+void btm_ble_save_extended_adv_params (tBTM_BLE_MULTI_ADV_INST *p_inst,UINT32 adv_int_min, UINT32 adv_int_max,
+        UINT8 own_addr_type, UINT8 pri_phy, UINT8 adv_sid ,UINT8 sec_adv_max_skip, UINT8 sec_adv_phy,
+        UINT8 scan_req_notf_enb, UINT8 channel_map, UINT8 adv_filter_policy, UINT8 tx_power)
+{
+    if(p_inst != NULL)
+    {
+        p_inst->adv_int_min = adv_int_min;
+        p_inst->adv_int_max = adv_int_max;
+        p_inst->own_addr_type = own_addr_type;
+        p_inst->pri_phy = pri_phy;
+        p_inst->adv_sid = adv_sid;
+        p_inst->sec_adv_max_skip = sec_adv_max_skip;
+        p_inst->sec_adv_phy = sec_adv_phy;
+        p_inst->scan_req_notf_enb = scan_req_notf_enb;
+        p_inst->channel_map = channel_map;
+        p_inst->adv_filter_policy = adv_filter_policy;
+        p_inst->tx_power = tx_power;
+    }
+}
+
 
 /*******************************************************************************
 **
@@ -1148,8 +1196,9 @@ tBTM_STATUS btm_ble_extended_adv_set_params (tBTM_BLE_MULTI_ADV_INST *p_inst,
     tBTM_STATUS       rt;
     tBLE_ADDR_TYPE    own_addr_type;
     tBLE_ADDR_TYPE    dir_addr_type = BLE_ADDR_RANDOM;
-    UINT8             primary_phy = BTM_DATA_RATE_ONE;
-    UINT8             adv_sid = 0x0F;
+    UINT32            adv_int_min = 0, adv_int_max =0;
+    UINT8             adv_filter_policy = 0, tx_power =0, channel_map = 0;
+    UINT8             pri_phy = 0,sec_adv_max_skip=0, sec_adv_phy=0, adv_sid=1, scan_req_notf_enb=0;
 
     if (!p_inst)
     {
@@ -1163,56 +1212,106 @@ tBTM_STATUS btm_ble_extended_adv_set_params (tBTM_BLE_MULTI_ADV_INST *p_inst,
         return BTM_ERR_PROCESSING;
     }
 
-    p_inst->duration = p_params->duration;
-    p_inst->adv_evt = p_params->adv_type;
     set_id = p_inst->inst_id;
-    switch (p_params->adv_type)
-    {
-        case BTM_BLE_CONNECT_EVT:
-            evt_prop = BTM_BLE_EXT_CONNECT_EVT;
-            break;
-        case BTM_BLE_CONNECT_DIR_EVT:
-            evt_prop = BTM_BLE_EXT_CONNECT_DIR_EVT;
-            break;
-        case BTM_BLE_DISCOVER_EVT:
-            evt_prop = BTM_BLE_EXT_DISCOVER_EVT;
-            break;
-        case BTM_BLE_NON_CONNECT_EVT:
-            evt_prop = BTM_BLE_EXT_NON_CONNECT_EVT;
-            break;
-        case BTM_BLE_CONNECT_LO_DUTY_DIR_EVT:
-            evt_prop = BTM_BLE_EXT_CONNECT_LO_DUTY_DIR_EVT;
-            break;
-    }
-    p_inst->evt_prop = evt_prop;
-
 #if (defined BLE_PRIVACY_SPT && BLE_PRIVACY_SPT == TRUE)
-    if (btm_cb.ble_ctr_cb.privacy_mode != BTM_PRIVACY_NONE)
-    {
-        own_addr_type = BLE_ADDR_RANDOM_ID;
-    }
-    else
+        if (btm_cb.ble_ctr_cb.privacy_mode != BTM_PRIVACY_NONE)
+        {
+            own_addr_type = BLE_ADDR_RANDOM_ID;
+        }
+        else
 #endif
+        {
+            own_addr_type = BLE_ADDR_PUBLIC;
+        }
+
+    if(p_params != NULL)
     {
-        own_addr_type = BLE_ADDR_PUBLIC;
+        p_inst->duration = p_params->duration;
+        p_inst->adv_evt = p_params->adv_type;
+
+        adv_int_min = p_params->adv_int_min;
+        adv_int_max = p_params->adv_int_max;
+        //To identify that event type(adv type) parameter was read from bt_stack.conf and not sent from fwks
+        if(p_params->sec_adv_phy > 0)
+        {
+            evt_prop = p_params->adv_type;
+            pri_phy = p_params->pri_phy;
+            adv_sid = p_params->adv_sid;
+            scan_req_notf_enb =p_params->scan_req_notf_enb;
+            sec_adv_phy = p_params->sec_adv_phy;
+            sec_adv_max_skip = p_params->sec_adv_max_skip;
+        }
+        else
+        {
+            switch (p_params->adv_type)
+            {
+                case BTM_BLE_CONNECT_EVT:
+                    evt_prop = BTM_BLE_EXT_CONNECT_EVT;
+                    break;
+                case BTM_BLE_CONNECT_DIR_EVT:
+                    evt_prop = BTM_BLE_EXT_CONNECT_DIR_EVT;
+                    break;
+                case BTM_BLE_DISCOVER_EVT:
+                    evt_prop = BTM_BLE_EXT_DISCOVER_EVT;
+                    break;
+                case BTM_BLE_NON_CONNECT_EVT:
+                    evt_prop = BTM_BLE_EXT_NON_CONNECT_EVT;
+                    break;
+                case BTM_BLE_CONNECT_LO_DUTY_DIR_EVT:
+                    evt_prop = BTM_BLE_EXT_CONNECT_LO_DUTY_DIR_EVT;
+                    break;
+            }
+            pri_phy = BTM_DATA_RATE_ONE;
+            adv_sid = 0x01;
+
+        }
+        p_inst->evt_prop = evt_prop;
+
+        if (p_params->channel_map == 0 || p_params->channel_map > BTM_BLE_DEFAULT_ADV_CHNL_MAP)
+            channel_map = BTM_BLE_DEFAULT_ADV_CHNL_MAP;
+        else
+            channel_map = p_params->channel_map;
+
+        if (p_params->adv_filter_policy >= AP_SCAN_CONN_POLICY_MAX)
+            adv_filter_policy = AP_SCAN_CONN_ALL;
+        else
+            adv_filter_policy = p_params->adv_filter_policy;
+
+        if (p_params->tx_power > BTM_BLE_ADV_TX_POWER_MAX)
+            tx_power = BTM_BLE_ADV_TX_POWER_MAX;
+        else
+            tx_power = p_params->tx_power;
+
+        //save ext adv params in p_inst for reenabling adv for chained ext advs
+        btm_ble_save_extended_adv_params(p_inst, adv_int_min, adv_int_max, own_addr_type, pri_phy, adv_sid ,sec_adv_max_skip,
+                                         sec_adv_phy, scan_req_notf_enb, channel_map, adv_filter_policy,tx_power);
+    }
+    //else case is reached when adv is disabled and re enabled again for chained advs
+    else
+    {
+        evt_prop = p_inst->evt_prop;
+        adv_int_min = p_inst->adv_int_min;
+        adv_int_max =p_inst->adv_int_max;
+        channel_map =p_inst->channel_map;
+        adv_filter_policy =p_inst->adv_filter_policy;
+        tx_power=p_inst->tx_power;
+        pri_phy=p_inst->pri_phy;
+        sec_adv_max_skip=p_inst->sec_adv_max_skip;
+        sec_adv_phy =p_inst->sec_adv_phy;
+        adv_sid =p_inst->adv_sid;
+        scan_req_notf_enb=p_inst->scan_req_notf_enb;
     }
 
-    if (p_params->channel_map == 0 || p_params->channel_map > BTM_BLE_DEFAULT_ADV_CHNL_MAP)
-        p_params->channel_map = BTM_BLE_DEFAULT_ADV_CHNL_MAP;
-
-    if (p_params->adv_filter_policy >= AP_SCAN_CONN_POLICY_MAX)
-        p_params->adv_filter_policy = AP_SCAN_CONN_ALL;
-
-    if (p_params->tx_power > BTM_BLE_ADV_TX_POWER_MAX)
-        p_params->tx_power = BTM_BLE_ADV_TX_POWER_MAX;
+    BTM_TRACE_ERROR ("%s: evt_prop::%d, primary_phy=%d,p_params->sec_adv_max_skip=%d, p_params->sec_adv_phy=%d, p_params->adv_sid=%d, p_params->scan_req_notf_enb=%d", __func__,
+                    evt_prop, pri_phy, sec_adv_max_skip, sec_adv_phy, adv_sid, scan_req_notf_enb);
 
     rt = btsnd_hcic_ble_set_extended_adv_params (set_id - 1, evt_prop,
-                                                 p_params->adv_int_min, p_params->adv_int_max,
-                                                 p_params->channel_map, own_addr_type,
+                                                 adv_int_min, adv_int_max,
+                                                 channel_map, own_addr_type,
                                                  dir_addr_type, p_inst->rpa,
-                                                 p_params->adv_filter_policy, btm_ble_map_adv_tx_power(p_params->tx_power),
-                                                 primary_phy, p_params->sec_adv_max_skip,
-                                                 p_params->sec_adv_phy, adv_sid, p_params->scan_req_notf_enb);
+                                                 adv_filter_policy, btm_ble_map_adv_tx_power(tx_power),
+                                                 pri_phy, sec_adv_max_skip,
+                                                 sec_adv_phy, adv_sid, scan_req_notf_enb);
 
     if (rt == BTM_CMD_STARTED)
     {
@@ -1222,6 +1321,126 @@ tBTM_STATUS btm_ble_extended_adv_set_params (tBTM_BLE_MULTI_ADV_INST *p_inst,
     return rt;
 }
 
+/*******************************************************************************
+**
+** Function         btm_ble_send_ext_adv_data
+**
+** Description      This function configure a Multi-ADV instance with the specified
+**                  adv data or scan response data.
+**
+** Parameters       inst_id: adv instance ID
+**                  is_scan_rsp: is this scan response. if no, set as adv data.
+**                  data_mask: adv data mask.
+**                  p_data: pointer to the adv data structure.
+**                  operation:
+**                  0x00: Intermediate fragment
+**                  0x01: first fragment
+**                  0x02: Last fragment
+**                  0x03: complete data, ctrlr fragmentation permitted
+**                  0x04: complete data, ctrlr fragmentation not permitted
+**
+** Returns          status
+**
+*******************************************************************************/
+tBTM_STATUS btm_ble_send_ext_adv_data (BOOLEAN is_scan_rsp, UINT8 inst_id, UINT8 operation, UINT8 frag_pref, UINT8 data_len, UINT8 *param)
+{
+    tBTM_STATUS rt;
+    UINT8 sub_code;
+    if (!is_scan_rsp)
+    {
+        rt = btsnd_hcic_ble_set_extended_adv_data(inst_id - 1,
+                                    operation,
+                                    frag_pref,
+                                    data_len,
+                                    param);
+        sub_code = BTM_BLE_MULTI_ADV_WRITE_ADV_DATA;
+    }
+    else
+    {
+        rt = btsnd_hcic_ble_set_extended_scan_rsp_data(inst_id - 1,
+                                    operation,
+                                    frag_pref,
+                                    data_len,
+                                    param);
+        sub_code = BTM_BLE_MULTI_ADV_WRITE_SCAN_RSP_DATA;
+    }
+
+    if (rt == BTM_CMD_STARTED)
+    {
+        btm_ble_multi_adv_enq_op_q(sub_code, inst_id, BTM_BLE_MULTI_ADV_DATA_EVT);
+    }
+    return rt;
+}
+
+
+/*******************************************************************************
+**
+** Function         btm_ble_compute_frag_lens
+**
+** Description      This function configure a Multi-ADV instance with the specified
+**                  adv data or scan response data.
+**
+** Parameters       inst_id: adv instance ID
+**                  is_scan_rsp: is this scan response. if no, set as adv data.
+**                  data_mask: adv data mask.
+**                  p_data: pointer to the adv data structure.
+**                  operation:
+**                  0x00: Intermediate fragment
+**                  0x01: first fragment
+**                  0x02: Last fragment
+**                  0x03: complete data, ctrlr fragmentation permitted
+**                  0x04: complete data, ctrlr fragmentation not permitted
+**
+** Returns          status
+**
+*******************************************************************************/
+void btm_ble_compute_frag_lens (UINT16 data_len, UINT8* num_hci_cmds, UINT8 *pp_data_len)
+{
+    UINT8 index = 0;
+    *num_hci_cmds = (data_len/(HCI_COMMAND_SIZE-4));
+    for(index=0; index < *num_hci_cmds; index++)
+        pp_data_len[index] = (HCI_COMMAND_SIZE -4);
+
+    if(data_len % (HCI_COMMAND_SIZE-4))
+    {
+        pp_data_len[index] = (data_len % (HCI_COMMAND_SIZE-4));
+        (*num_hci_cmds)++;
+    }
+    BTM_TRACE_EVENT("btm_ble_compute_frag_lens::Final num_hci_cmds=%d",*num_hci_cmds);
+}
+
+/*******************************************************************************
+**
+** Function         btm_ble_get_operation
+**
+** Description      This function configure a Multi-ADV instance with the specified
+**                  adv data or scan response data.
+**
+** Parameters       inst_id: adv instance ID
+**                  is_scan_rsp: is this scan response. if no, set as adv data.
+**                  data_mask: adv data mask.
+**                  p_data: pointer to the adv data structure.
+**                  operation:
+**                  0x00: Intermediate fragment
+**                  0x01: first fragment
+**                  0x02: Last fragment
+**                  0x03: complete data, ctrlr fragmentation permitted
+**                  0x04: complete data, ctrlr fragmentation not permitted
+**
+** Returns          status
+**
+*******************************************************************************/
+UINT8 btm_ble_get_operation (UINT8 num_hci_cmds_copy, UINT8 num_hci_cmds)
+{
+    UINT8 op = 0;
+    if(num_hci_cmds_copy == num_hci_cmds)
+        op = BTM_BLE_EXT_ADV_FIRST_FRAG;
+    else if(num_hci_cmds != 1)
+        op = BTM_BLE_EXT_ADV_INT_FRAG;
+    else
+        op = BTM_BLE_EXT_ADV_LAST_FRAG;
+    return op;
+}
 
 
 /*******************************************************************************
@@ -1247,20 +1466,29 @@ tBTM_STATUS btm_ble_extended_adv_set_params (tBTM_BLE_MULTI_ADV_INST *p_inst,
 *******************************************************************************/
 tBTM_STATUS BTM_BleWriteExtendedAdvData (UINT8 inst_id, BOOLEAN is_scan_rsp,
                                     tBTM_BLE_AD_MASK data_mask,
-                                    UINT8 operation,
+                                    UINT8 operation, UINT8 frag_pref,
                                     tBTM_BLE_ADV_DATA *p_data)
 {
-    UINT8       param[BTM_BLE_EXTENDED_AD_DATA_LEN], *pp = param;
-    UINT8       data_len;
+    UINT8       param[BTM_BLE_EXTENDED_AD_DATA_LEN], *pp = param, frag_data[HCI_COMMAND_SIZE-4];
+    UINT8       frag_data_len[BTM_BLE_EXT_ADV_MAX_FRAG_NUM], index=0;
+    UINT16      data_len, offset =0, j=0;
     tBTM_STATUS rt;
-    UINT8       sub_code;
+    UINT8       num_hci_cmds = 0, num_hci_cmds_copy = 0;
     tBTM_BLE_MULTI_ADV_INST *p_inst;
-    UINT8 fragement_pref = 0x01;
+    tBTM_BLE_LOCAL_ADV_DATA *p_adv_data = &btm_cb.ble_ctr_cb.inq_var.adv_data;
 
     if (0 == BTM_BleMaxMultiAdvInstanceCount())
     {
         BTM_TRACE_ERROR ("%s: Controller does not support extended Multi ADV", __func__);
         return BTM_ERR_PROCESSING;
+    }
+    BTM_TRACE_EVENT("BTM_BleWriteExtendedAdvData");
+    if (stack_config_get_interface()->get_pts_le_nonconn_adv_enabled())
+    {
+        if (p_adv_data->p_flags != NULL)
+        {
+            p_data->flag = *(p_adv_data->p_flags);
+        }
     }
 
     btm_ble_update_dmt_flag_bits(&p_data->flag, btm_cb.btm_inq_vars.connectable_mode,
@@ -1288,69 +1516,57 @@ tBTM_STATUS BTM_BleWriteExtendedAdvData (UINT8 inst_id, BOOLEAN is_scan_rsp,
     }
 
     btm_ble_build_adv_data(&data_mask, &pp, p_data, p_inst->len);
-    data_len = (UINT8) (pp - param);
+    data_len = (UINT16) (pp - param);
     BTM_TRACE_ERROR("%s: data len is %d", __func__, data_len);
-    if (!is_scan_rsp)
+
+    if(data_len > HCI_COMMAND_SIZE)
+        btm_ble_compute_frag_lens(data_len, &num_hci_cmds, frag_data_len);
+
+    num_hci_cmds_copy = num_hci_cmds;
+
+    if(num_hci_cmds > 0)
     {
-        rt = btsnd_hcic_ble_set_extended_adv_data(inst_id - 1,
-                                    operation,
-                                    fragement_pref,
-                                    data_len,
-                                    param);
-        sub_code = BTM_BLE_MULTI_ADV_WRITE_ADV_DATA;
+        //Disable advertisement
+        rt = btm_ble_enable_extended_adv (FALSE, inst_id,
+                                         p_inst->duration, 0/*p_params->max_ext_adv_evts*/,
+                                         0/*instead of BTM_BLE_MULTI_ADV_DISABLE_EVT*/);
+        p_inst->in_use = FALSE;
+
+        //set ext adv params
+        if (rt == BTM_CMD_STARTED)
+        {
+            p_inst->in_use = TRUE;
+            rt = btm_ble_extended_adv_set_params(p_inst, NULL, 0);
+        }
+
+        //set ext adv data
+        if (rt == BTM_CMD_STARTED)
+        {
+            while(num_hci_cmds)
+            {
+                memset(frag_data, 0, frag_data_len[index]);
+                BTM_TRACE_ERROR("offset =%d , index =%d ,frag_data_len[index] ::%d",offset, index, frag_data_len[index]);
+                for(j=0; j< frag_data_len[index]; j++)
+                {
+                    BTM_TRACE_ERROR("Adv data ::%02x",param[offset+j]);
+                }
+                memcpy(frag_data, (param+offset), frag_data_len[index]);
+                operation = btm_ble_get_operation(num_hci_cmds_copy, num_hci_cmds);
+                offset += frag_data_len[index];
+                rt = btm_ble_send_ext_adv_data(is_scan_rsp, inst_id, operation, frag_pref, frag_data_len[index++], frag_data);
+                num_hci_cmds--;
+            }
+        }
+        //enable ext adv
+        if (rt == BTM_CMD_STARTED)
+        {
+            rt = btm_ble_enable_extended_adv (TRUE, p_inst->inst_id, p_inst->duration, 0, 0/*instead of BTM_BLE_EXTENDED_ADV_ENB_EVT*/);
+        }
     }
     else
-    {
-        rt = btsnd_hcic_ble_set_extended_scan_rsp_data(inst_id - 1,
-                                    operation,
-                                    fragement_pref,
-                                    data_len,
-                                    param);
-        sub_code = BTM_BLE_MULTI_ADV_WRITE_SCAN_RSP_DATA;
-    }
+        rt = btm_ble_send_ext_adv_data(is_scan_rsp, inst_id, operation, frag_pref, data_len, param);
 
-    if (rt == BTM_CMD_STARTED)
-    {
-        btm_ble_multi_adv_enq_op_q(sub_code, inst_id, BTM_BLE_MULTI_ADV_DATA_EVT);
-    }
     return rt;
-}
-
-/*******************************************************************************
-**
-** Function         btm_ble_read_inst_length_complete
-**
-** Description      This function is a callback event of read instance length
-**
-** Returns          void
-**
-*******************************************************************************/
-
-void btm_ble_read_inst_length_complete(UINT8* p, UINT16 evt_len)
-{
-    UINT8 status;
-    UINT16 inst_len;
-    UINT8 index;
-
-    tBTM_BLE_MULTI_ADV_INST *p_inst = &btm_multi_adv_cb.p_adv_inst[0];
-    UNUSED(evt_len);
-
-    STREAM_TO_UINT8 (status, p);
-
-    if (status != HCI_SUCCESS)
-    {
-        BTM_TRACE_ERROR ("%s, HCI command failure", __func__);
-        return;
-    }
-
-    STREAM_TO_UINT16 (inst_len, p);
-
-    BTM_TRACE_EVENT ("%s, status: %d, inst size = %d", __func__, status, inst_len);
-
-    for (index = 0; index <  BTM_BleMaxMultiAdvInstanceCount() - 1; index++, p_inst++)
-    {
-        p_inst->len = inst_len;
-    }
 }
 
 /*******************************************************************************
@@ -1377,7 +1593,7 @@ void btm_ble_ext_adv_reenable(UINT8 inst_id)
     {
         // Verify the evt prop directed adv bit is 0
         if (!(p_inst->evt_prop & 0x04))
-            btm_ble_enable_extended_adv (TRUE, p_inst->inst_id, duration, 0);
+            btm_ble_enable_extended_adv (TRUE, p_inst->inst_id, duration, 0, 0);
         else
         {
             //mark directed adv as disabled if adv has been stopped
@@ -1554,6 +1770,21 @@ void btm_ble_adv_extension_operation_complete(UINT8* p, UINT16 hcicmd)
         (p_inst->p_cback)(cb_evt, inst_id, p_inst->p_ref, status);
     }
     return;
+}
+
+UINT8 BTM_BleGetAvailableMAInstance ()
+{
+    UINT8 index = 0;
+    tBTM_BLE_MULTI_ADV_INST *p_inst = &btm_multi_adv_cb.p_adv_inst[0];
+
+    BTM_TRACE_EVENT("BTM_BleGetAvailableMAInstance");
+
+    for (index = 0; index <  BTM_BleMaxMultiAdvInstanceCount() - 1; index++, p_inst++)
+    {
+        if (FALSE == p_inst->in_use)
+            break;
+    }
+    return index;
 }
 
 #endif

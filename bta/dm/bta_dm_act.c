@@ -105,6 +105,8 @@ extern tBTA_DM_CONTRL_STATE bta_dm_pm_obtain_controller_state(void);
 static void bta_dm_ctrl_features_rd_cmpl_cback(tBTM_STATUS result);
 #endif
 
+static void bta_dm_ext_adv_ctrl_features_rd_cmpl_cback(tBTM_STATUS result);
+
 #ifndef BTA_DM_BLE_ADV_CHNL_MAP
 #define BTA_DM_BLE_ADV_CHNL_MAP (BTM_BLE_ADV_CHNL_37|BTM_BLE_ADV_CHNL_38|BTM_BLE_ADV_CHNL_39)
 #endif
@@ -446,6 +448,9 @@ static void bta_dm_sys_hw_cback( tBTA_SYS_HW_EVT status )
         BTM_BleReadControllerFeatures (bta_dm_ctrl_features_rd_cmpl_cback);
 #endif
 
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+        BTM_BleReadExtAdvControllerFeatures (bta_dm_ext_adv_ctrl_features_rd_cmpl_cback);
+#endif
         /* Earlier, we used to invoke BTM_ReadLocalAddr which was just copying the bd_addr
            from the control block and invoking the callback which was sending the DM_ENABLE_EVT.
            But then we have a few HCI commands being invoked above which were still in progress
@@ -2495,6 +2500,7 @@ static void bta_dm_inq_results_cb (tBTM_INQ_RESULTS *p_inq, UINT8 *p_eir)
     result.inq_res.inq_result_type  = p_inq->inq_result_type;
     result.inq_res.device_type      = p_inq->device_type;
     result.inq_res.flag             = p_inq->flag;
+    result.inq_res.adv_data_len     = p_inq->adv_data_len;
 #endif
 
     /* application will parse EIR to find out remote device name */
@@ -4353,7 +4359,6 @@ static void bta_dm_observe_results_cb (tBTM_INQ_RESULTS *p_inq, UINT8 *p_eir)
 ;
     tBTA_DM_SEARCH     result;
     tBTM_INQ_INFO      *p_inq_info;
-    APPL_TRACE_DEBUG("bta_dm_observe_results_cb")
 
     bdcpy(result.inq_res.bd_addr, p_inq->remote_bd_addr);
     result.inq_res.rssi = p_inq->rssi;
@@ -4361,6 +4366,7 @@ static void bta_dm_observe_results_cb (tBTM_INQ_RESULTS *p_inq, UINT8 *p_eir)
     result.inq_res.inq_result_type  = p_inq->inq_result_type;
     result.inq_res.device_type      = p_inq->device_type;
     result.inq_res.flag             = p_inq->flag;
+    result.inq_res.adv_data_len     = p_inq->adv_data_len;
 
     /* application will parse EIR to find out remote device name */
     result.inq_res.p_eir = p_eir;
@@ -4722,8 +4728,11 @@ void bta_dm_ble_set_conn_params (tBTA_DM_MSG *p_data)
 void bta_dm_ble_set_scan_params(tBTA_DM_MSG *p_data)
 {
     BTM_BleSetScanParams(p_data->ble_set_scan_params.client_if,
+                         p_data->ble_set_scan_params.scan_phys,
                          p_data->ble_set_scan_params.scan_int,
                          p_data->ble_set_scan_params.scan_window,
+                         p_data->ble_set_scan_params.scan_int_coded,
+                         p_data->ble_set_scan_params.scan_window_coded,
                          p_data->ble_set_scan_params.scan_mode,
                          p_data->ble_set_scan_params.scan_param_setup_cback);
 }
@@ -4796,6 +4805,7 @@ void bta_dm_ble_observe (tBTA_DM_MSG *p_data)
         /*Save the  callback to be called when a scan results are available */
         bta_dm_search_cb.p_scan_cback = p_data->ble_observe.p_cback;
         if ((status = BTM_BleObserve(TRUE, p_data->ble_observe.duration,
+                            p_data->ble_observe.period,
                             bta_dm_observe_results_cb, bta_dm_observe_cmpl_cb))!= BTM_CMD_STARTED)
         {
             tBTA_DM_SEARCH  data;
@@ -4810,7 +4820,7 @@ void bta_dm_ble_observe (tBTA_DM_MSG *p_data)
     else
     {
         bta_dm_search_cb.p_scan_cback = NULL;
-        BTM_BleObserve(FALSE, 0, NULL,NULL );
+        BTM_BleObserve(FALSE, 0, p_data->ble_observe.period, NULL, NULL );
     }
 }
 /*******************************************************************************
@@ -5022,6 +5032,7 @@ void bta_dm_ble_multi_adv_data(tBTA_DM_MSG *p_data)
         btm_status = BTM_BleCfgAdvInstData(p_data->ble_multi_adv_data.inst_id,
                         p_data->ble_multi_adv_data.is_scan_rsp,
                         p_data->ble_multi_adv_data.data_mask,
+                        p_data->ble_multi_adv_data.frag_pref,
                         (tBTM_BLE_ADV_DATA*)&p_data->ble_multi_adv_data.data);
     }
 
@@ -5786,5 +5797,28 @@ static void bta_dm_ctrl_features_rd_cmpl_cback(tBTM_STATUS result)
 
 }
 #endif /* BLE_VND_INCLUDED */
+/*******************************************************************************
+**
+** Function         bta_dm_ext_adv_ctrl_features_rd_cmpl_cback
+**
+** Description      callback to handle controller feature read complete
+**
+** Parameters:
+**
+*******************************************************************************/
+static void bta_dm_ext_adv_ctrl_features_rd_cmpl_cback(tBTM_STATUS result)
+{
+    APPL_TRACE_DEBUG("%s  status = %d ", __FUNCTION__, result);
+    if (result == BTM_SUCCESS)
+    {
+        if(bta_dm_cb.p_sec_cback)
+            bta_dm_cb.p_sec_cback(BTA_DM_LE_ADV_EXT_FEATURES_READ, NULL);
+    }
+    else
+    {
+        APPL_TRACE_ERROR("%s Ctrl BLE ADV EXT feature read failed: status :%d",__FUNCTION__, result);
+    }
+
+}
 
 #endif  /* BLE_INCLUDED */

@@ -129,6 +129,8 @@ static void btu_ble_data_rate_update_evt(UINT8 *p, UINT16 evt_len);
 
 #if (defined BLE_EXTENDED_ADV_SUPPORT && BLE_EXTENDED_ADV_SUPPORT == TRUE)
 static void btu_ble_adv_terminated_evt (UINT8* p);
+static void btu_ble_process_ext_adv_pkt (UINT8 *p);
+static void btu_ble_scan_timeout_evt (void);
 #endif
     #endif
 
@@ -341,9 +343,17 @@ void btu_hcif_process_event (UNUSED_ATTR UINT8 controller_id, BT_HDR *p_msg)
                case HCI_BLE_PHY_UPDATE_EVT:
                     btu_ble_data_rate_update_evt(p, hci_evt_len);
                     break;
+
 #if (defined BLE_EXTENDED_ADV_SUPPORT && BLE_EXTENDED_ADV_SUPPORT == TRUE)
                case HCI_BLE_EXT_ADV_TERMINATED_EVT:
                     btu_ble_adv_terminated_evt(p);
+                    break;
+
+               case HCI_BLE_EXT_ADV_PKT_RPT_EVT:
+                    btu_ble_process_ext_adv_pkt(p);
+                    break;
+               case HCI_BLE_SCAN_TIMEOUT_EVT:
+                    btu_ble_scan_timeout_evt();
                     break;
 #endif
             }
@@ -1663,8 +1673,10 @@ static void btu_ble_process_adv_pkt (UINT8 *p)
 {
     HCI_TRACE_EVENT("btu_ble_process_adv_pkt");
 
-    btm_ble_process_adv_pkt(p);
+    btm_ble_process_adv_pkt(p, FALSE);
 }
+
+
 
 static void btu_ble_ll_conn_complete_evt ( UINT8 *p, UINT16 evt_len)
 {
@@ -1675,6 +1687,16 @@ static void btu_ble_ll_conn_complete_evt ( UINT8 *p, UINT16 evt_len)
 static void btu_ble_adv_terminated_evt (UINT8 *p)
 {
     btm_ble_adv_set_terminated_evt(p);
+}
+
+static void btu_ble_process_ext_adv_pkt (UINT8 *p)
+{
+    btm_ble_process_adv_pkt(p, TRUE);
+}
+
+static void btu_ble_scan_timeout_evt (void)
+{
+    btm_ble_scan_timeout_evt();
 }
 #endif
 

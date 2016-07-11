@@ -126,18 +126,32 @@ void btm_update_scanner_filter_policy(tBTM_BLE_SFP scan_policy)
     p_inq->sfp = scan_policy;
     p_inq->scan_type = p_inq->scan_type == BTM_BLE_SCAN_MODE_NONE ? BTM_BLE_SCAN_MODE_ACTI : p_inq->scan_type;
 
-    if (btm_cb.cmn_ble_vsc_cb.extended_scan_support == 0)
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+    if (controller_get_interface()->supports_ble_extended_advertisements())
     {
-        btsnd_hcic_ble_set_scan_params(p_inq->scan_type, (UINT16)scan_interval,
-                                       (UINT16)scan_window,
-                                       btm_cb.ble_ctr_cb.addr_mgnt_cb.own_addr_type,
-                                       scan_policy);
+        btsnd_hcic_ble_set_extended_scan_params(1 /*LE 1M PHY*/, p_inq->scan_type, (UINT16)scan_interval,
+                                                (UINT16)scan_window,
+                                                (UINT16)scan_interval,
+                                                (UINT16)scan_window,
+                                                btm_cb.ble_ctr_cb.addr_mgnt_cb.own_addr_type,
+                                                BTM_BLE_DEFAULT_SFP);
     }
     else
+#endif
     {
-        btm_ble_send_extended_scan_params(p_inq->scan_type, scan_interval, scan_window,
-                                          btm_cb.ble_ctr_cb.addr_mgnt_cb.own_addr_type,
-                                          scan_policy);
+        if (btm_cb.cmn_ble_vsc_cb.extended_scan_support == 0)
+        {
+            btsnd_hcic_ble_set_scan_params(p_inq->scan_type, (UINT16)scan_interval,
+                                           (UINT16)scan_window,
+                                           btm_cb.ble_ctr_cb.addr_mgnt_cb.own_addr_type,
+                                           scan_policy);
+        }
+        else
+        {
+            btm_ble_send_extended_scan_params(p_inq->scan_type, scan_interval, scan_window,
+                                              btm_cb.ble_ctr_cb.addr_mgnt_cb.own_addr_type,
+                                              scan_policy);
+        }
     }
 }
 /*******************************************************************************
@@ -390,30 +404,61 @@ BOOLEAN btm_ble_start_auto_conn(BOOLEAN start)
                     && controller_get_interface()->supports_ble_privacy())
             {
                 own_addr_type |= BLE_ADDR_TYPE_ID_BIT;
-                peer_addr_type |= BLE_ADDR_TYPE_ID_BIT;
+                if (!controller_get_interface()->supports_ble_extended_advertisements())
+                {
+                    peer_addr_type |= BLE_ADDR_TYPE_ID_BIT;
+                }
             }
 #endif
-
-            if (!btsnd_hcic_ble_create_ll_conn (scan_int,  /* UINT16 scan_int      */
-                                                scan_win,    /* UINT16 scan_win      */
-                                                0x01,                   /* UINT8 white_list     */
-                                                peer_addr_type,        /* UINT8 addr_type_peer */
-                                                dummy_bda,              /* BD_ADDR bda_peer     */
-                                                own_addr_type,          /* UINT8 addr_type_own */
-                                                BTM_BLE_CONN_INT_MIN_DEF,   /* UINT16 conn_int_min  */
-                                                BTM_BLE_CONN_INT_MAX_DEF,   /* UINT16 conn_int_max  */
-                                                BTM_BLE_CONN_SLAVE_LATENCY_DEF,  /* UINT16 conn_latency  */
-                                                BTM_BLE_CONN_TIMEOUT_DEF,        /* UINT16 conn_timeout  */
-                                                0,                       /* UINT16 min_len       */
-                                                0))                      /* UINT16 max_len       */
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+            if (controller_get_interface()->supports_ble_extended_advertisements())
             {
-                /* start auto connection failed */
-                exec =  FALSE;
-                p_cb->wl_state &= ~BTM_BLE_WL_INIT;
+                if (!btsnd_hcic_ble_ext_create_ll_conn (1 /*LE 1M PHY*/, scan_int,  /* UINT16 scan_int      */
+                                                    scan_win,    /* UINT16 scan_win      */
+                                                    0x01,                   /* UINT8 white_list     */
+                                                    peer_addr_type,        /* UINT8 addr_type_peer */
+                                                    dummy_bda,              /* BD_ADDR bda_peer     */
+                                                    own_addr_type,          /* UINT8 addr_type_own */
+                                                    BTM_BLE_CONN_INT_MIN_DEF,   /* UINT16 conn_int_min  */
+                                                    BTM_BLE_CONN_INT_MAX_DEF,   /* UINT16 conn_int_max  */
+                                                    BTM_BLE_CONN_SLAVE_LATENCY_DEF,  /* UINT16 conn_latency  */
+                                                    BTM_BLE_CONN_TIMEOUT_DEF,        /* UINT16 conn_timeout  */
+                                                    0,                       /* UINT16 min_len       */
+                                                    0))                      /* UINT16 max_len       */
+                {
+                    /* start auto connection failed */
+                    exec =  FALSE;
+                    p_cb->wl_state &= ~BTM_BLE_WL_INIT;
+                }
+                else
+                {
+                    btm_ble_set_conn_st (BLE_BG_CONN);
+                }
             }
             else
+#endif
             {
-                btm_ble_set_conn_st (BLE_BG_CONN);
+                if (!btsnd_hcic_ble_create_ll_conn (scan_int,  /* UINT16 scan_int      */
+                                                    scan_win,    /* UINT16 scan_win      */
+                                                    0x01,                   /* UINT8 white_list     */
+                                                    peer_addr_type,        /* UINT8 addr_type_peer */
+                                                    dummy_bda,              /* BD_ADDR bda_peer     */
+                                                    own_addr_type,          /* UINT8 addr_type_own */
+                                                    BTM_BLE_CONN_INT_MIN_DEF,   /* UINT16 conn_int_min  */
+                                                    BTM_BLE_CONN_INT_MAX_DEF,   /* UINT16 conn_int_max  */
+                                                    BTM_BLE_CONN_SLAVE_LATENCY_DEF,  /* UINT16 conn_latency  */
+                                                    BTM_BLE_CONN_TIMEOUT_DEF,        /* UINT16 conn_timeout  */
+                                                    0,                       /* UINT16 min_len       */
+                                                    0))                      /* UINT16 max_len       */
+                {
+                    /* start auto connection failed */
+                    exec =  FALSE;
+                    p_cb->wl_state &= ~BTM_BLE_WL_INIT;
+                }
+                else
+                {
+                    btm_ble_set_conn_st (BLE_BG_CONN);
+                }
             }
         }
         else
@@ -472,27 +517,41 @@ BOOLEAN btm_ble_start_select_conn(BOOLEAN start, tBTM_BLE_SEL_CBACK *p_select_cb
             btm_cb.ble_ctr_cb.inq_var.scan_type = BTM_BLE_SCAN_MODE_PASS;
 
             /* Process advertising packets only from devices in the white list */
-            if (btm_cb.cmn_ble_vsc_cb.extended_scan_support == 0)
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+            if (controller_get_interface()->supports_ble_extended_advertisements())
             {
-                /* use passive scan by default */
-                if (!btsnd_hcic_ble_set_scan_params(BTM_BLE_SCAN_MODE_PASS,
-                                                    scan_int,
-                                                    scan_win,
-                                                    p_cb->addr_mgnt_cb.own_addr_type,
-                                                    SP_ADV_WL))
-                {
-                    return FALSE;
-                }
+                btsnd_hcic_ble_set_extended_scan_params(1 /*LE 1M PHY*/, BTM_BLE_SCAN_MODE_PASS, scan_int,
+                                                        scan_win,
+                                                        scan_int,
+                                                        scan_win,
+                                                        p_cb->addr_mgnt_cb.own_addr_type,
+                                                        SP_ADV_WL);
             }
             else
+#endif
             {
-                if (!btm_ble_send_extended_scan_params(BTM_BLE_SCAN_MODE_PASS,
-                                                       scan_int,
-                                                       scan_win,
-                                                       p_cb->addr_mgnt_cb.own_addr_type,
-                                                       SP_ADV_WL))
+                if (btm_cb.cmn_ble_vsc_cb.extended_scan_support == 0)
                 {
-                    return FALSE;
+                    /* use passive scan by default */
+                    if (!btsnd_hcic_ble_set_scan_params(BTM_BLE_SCAN_MODE_PASS,
+                                                        scan_int,
+                                                        scan_win,
+                                                        p_cb->addr_mgnt_cb.own_addr_type,
+                                                        SP_ADV_WL))
+                    {
+                        return FALSE;
+                    }
+                }
+                else
+                {
+                    if (!btm_ble_send_extended_scan_params(BTM_BLE_SCAN_MODE_PASS,
+                                                           scan_int,
+                                                           scan_win,
+                                                           p_cb->addr_mgnt_cb.own_addr_type,
+                                                           SP_ADV_WL))
+                    {
+                        return FALSE;
+                    }
                 }
             }
 
@@ -506,8 +565,18 @@ BOOLEAN btm_ble_start_select_conn(BOOLEAN start, tBTM_BLE_SEL_CBACK *p_select_cb
 #if BLE_PRIVACY_SPT == TRUE
                 btm_ble_enable_resolving_list_for_platform(BTM_BLE_RL_SCAN);
 #endif
-                if (!btsnd_hcic_ble_set_scan_enable(TRUE, TRUE)) /* duplicate filtering enabled */
-                     return FALSE;
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+                if (controller_get_interface()->supports_ble_extended_advertisements())
+                {
+                    if (!btsnd_hcic_ble_set_extended_scan_enable(TRUE,TRUE, 0, 0))
+                        return FALSE;
+                }
+                else
+#endif
+                {
+                    if (!btsnd_hcic_ble_set_scan_enable(TRUE, TRUE)) /* duplicate filtering enabled */
+                        return FALSE;
+                }
 
                  /* mark up inquiry status flag */
                  p_cb->scan_activity |= BTM_LE_SELECT_CONN_ACTIVE;

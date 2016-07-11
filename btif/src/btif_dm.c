@@ -370,7 +370,7 @@ static BOOLEAN check_eir_is_remote_name_short(tBTA_DM_SEARCH *p_search_data)
     if (p_search_data->inq_res.p_eir)
     {
         p_eir_remote_name = BTM_CheckEirData(p_search_data->inq_res.p_eir,
-                         BTM_EIR_SHORTENED_LOCAL_NAME_TYPE, &remote_name_len);
+                BTM_EIR_SHORTENED_LOCAL_NAME_TYPE, &remote_name_len, p_search_data->inq_res.adv_data_len);
 
         if (p_eir_remote_name)
         {
@@ -400,11 +400,11 @@ static BOOLEAN check_eir_remote_name(tBTA_DM_SEARCH *p_search_data,
     if (p_search_data->inq_res.p_eir)
     {
         p_eir_remote_name = BTM_CheckEirData(p_search_data->inq_res.p_eir,
-                BTM_EIR_COMPLETE_LOCAL_NAME_TYPE, &remote_name_len);
+                BTM_EIR_COMPLETE_LOCAL_NAME_TYPE, &remote_name_len, p_search_data->inq_res.adv_data_len);
         if (!p_eir_remote_name)
         {
             p_eir_remote_name = BTM_CheckEirData(p_search_data->inq_res.p_eir,
-                    BTM_EIR_SHORTENED_LOCAL_NAME_TYPE, &remote_name_len);
+                    BTM_EIR_SHORTENED_LOCAL_NAME_TYPE, &remote_name_len, p_search_data->inq_res.adv_data_len);
         }
 
         if (p_eir_remote_name)
