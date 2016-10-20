@@ -972,8 +972,9 @@ static void btif_recv_ctrl_data(void)
                         memset(&aptx_config,0,sizeof(tA2D_APTX_CIE));
                         aptx_config.vendorId = codecInfo->vendorId;
                         aptx_config.codecId = codecInfo->codecId;
-                        aptx_config.sampleRate = codecInfo->sampleRate;
-                        aptx_config.channelMode = codecInfo->channelMode;
+                        //SampleRate & Chmode are bitmasked
+                        aptx_config.sampleRate = (codecInfo->sampleRate & 0xF0);
+                        aptx_config.channelMode = (codecInfo->sampleRate & 0x0F);
                         BTIF_TRACE_DEBUG("vendor id = %x",aptx_config.vendorId);
                         BTIF_TRACE_DEBUG("codec id = %x",aptx_config.codecId);
                         BTIF_TRACE_DEBUG("sample rate  = %x",aptx_config.sampleRate);
@@ -992,8 +993,9 @@ static void btif_recv_ctrl_data(void)
                             memset(&aptxhd_config,0,sizeof(tA2D_APTX_HD_CIE));
                             aptxhd_config.vendorId = codecInfo->vendorId;
                             aptxhd_config.codecId = codecInfo->codecId;
-                            aptxhd_config.sampleRate = codecInfo->sampleRate;
-                            aptxhd_config.channelMode = codecInfo->channelMode;
+                            //SampleRate & Chmode are bitmasked
+                            aptxhd_config.sampleRate = (codecInfo->sampleRate & 0xF0);
+                            aptxhd_config.channelMode = (codecInfo->sampleRate & 0x0F);
                             BTIF_TRACE_DEBUG("vendor id = %x",aptxhd_config.vendorId);
                             BTIF_TRACE_DEBUG("codec id = %x",aptxhd_config.codecId);
                             BTIF_TRACE_DEBUG("sample rate  = %x",aptxhd_config.sampleRate);
