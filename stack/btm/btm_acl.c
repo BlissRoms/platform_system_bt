@@ -2398,10 +2398,12 @@ void btm_read_tx_power_complete(UINT8 *p, BOOLEAN is_ble)
 *******************************************************************************/
 void btm_read_rssi_timeout(UNUSED_ATTR void *data)
 {
+    tBTM_RSSI_RESULTS  results;
     tBTM_CMPL_CB  *p_cb = btm_cb.devcb.p_rssi_cmpl_cb;
     btm_cb.devcb.p_rssi_cmpl_cb = NULL;
+    results.status = BTM_DEVICE_TIMEOUT;
     if (p_cb)
-        (*p_cb)((void *) NULL);
+        (*p_cb)(&results);
 }
 
 /*******************************************************************************
