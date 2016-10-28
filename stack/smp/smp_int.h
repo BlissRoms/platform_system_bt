@@ -312,6 +312,7 @@ typedef struct
                                             /* either in Secure Connections mode or not at all */
     tSMP_ASSO_MODEL selected_association_model;
     BOOLEAN         le_secure_connections_mode_is_used;
+    BOOLEAN         key_derivation_h7_used;
     BOOLEAN le_sc_kp_notif_is_used;
     tSMP_SC_KEY_TYPE local_keypress_notification;
     tSMP_SC_KEY_TYPE peer_keypress_notification;
@@ -532,6 +533,7 @@ extern BOOLEAN smp_calculate_f5_key(UINT8 *w, UINT8 *t);
 extern BOOLEAN smp_calculate_f6(UINT8 *w, UINT8 *n1, UINT8 *n2, UINT8 *r, UINT8 *iocap,
                                UINT8 *a1, UINT8 *a2, UINT8 *f3);
 extern BOOLEAN smp_calculate_h6(UINT8 *w, UINT8 *keyid, UINT8 *h2);
+extern BOOLEAN smp_calculate_h7(UINT8 *salt, UINT8 *w, UINT8 *h2);
 #if SMP_DEBUG == TRUE
 extern void smp_debug_print_nbyte_little_endian (UINT8 *p, const UINT8 *key_name,
                                                  UINT8 len);

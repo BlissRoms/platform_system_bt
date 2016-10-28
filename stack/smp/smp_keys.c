@@ -1909,6 +1909,11 @@ BOOLEAN smp_calculate_link_key_from_long_term_key(tSMP_CB *p_cb)
     tBTM_SEC_DEV_REC *p_dev_rec;
     BD_ADDR bda_for_lk;
     tBLE_ADDR_TYPE conn_addr_type;
+    BT_OCTET16  salt = {
+        0x31, 0x70, 0x6D, 0x74, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    };
+
 
     SMP_TRACE_DEBUG ("%s", __func__);
 
@@ -1937,7 +1942,11 @@ BOOLEAN smp_calculate_link_key_from_long_term_key(tSMP_CB *p_cb)
     BT_OCTET16 intermediate_link_key;
     BOOLEAN ret = TRUE;
 
-    ret = smp_calculate_h6(p_cb->ltk, (UINT8 *)"1pmt" /* reversed "tmp1" */,intermediate_link_key);
+    if (p_cb->key_derivation_h7_used)
+        ret = smp_calculate_h7((UINT8*)salt, p_cb->ltk, intermediate_link_key);
+    else
+        ret = smp_calculate_h6(p_cb->ltk, (UINT8 *)"1pmt" /* reversed "tmp1" */,intermediate_link_key);
+
     if (!ret)
     {
         SMP_TRACE_ERROR("%s failed to derive intermediate_link_key", __func__);
@@ -2011,6 +2020,10 @@ BOOLEAN smp_calculate_long_term_key_from_link_key(tSMP_CB *p_cb)
     BOOLEAN ret = TRUE;
     tBTM_SEC_DEV_REC *p_dev_rec;
     UINT8 rev_link_key[16];
+    BT_OCTET16  salt = {
+        0x32, 0x70, 0x6D, 0x74, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    };
 
     SMP_TRACE_DEBUG ("%s", __FUNCTION__);
 
@@ -2043,9 +2056,17 @@ BOOLEAN smp_calculate_long_term_key_from_link_key(tSMP_CB *p_cb)
     REVERSE_ARRAY_TO_STREAM(p1, p2, 16);
 
     BT_OCTET16 intermediate_long_term_key;
-    /* "tmp2" obtained from the spec */
-    ret = smp_calculate_h6(rev_link_key, (UINT8 *) "2pmt" /* reversed "tmp2" */,
-                           intermediate_long_term_key);
+
+    if (p_cb->key_derivation_h7_used)
+    {
+        ret = smp_calculate_h7((UINT8*)salt, rev_link_key, intermediate_long_term_key);
+    }
+    else
+    {
+        /* "tmp2" obtained from the spec */
+        ret = smp_calculate_h6(rev_link_key, (UINT8 *) "2pmt" /* reversed "tmp2" */,
+                               intermediate_long_term_key);
+    }
 
     if (!ret)
     {
@@ -2119,6 +2140,78 @@ BOOLEAN smp_calculate_h6(UINT8 *w, UINT8 *keyid, UINT8 *c)
 
     p = msg;
     ARRAY_TO_STREAM(p, keyid, 4);
+
+#if SMP_DEBUG == TRUE
+    p_print = msg;
+    smp_debug_print_nbyte_little_endian (p_print,(const UINT8 *) "M", msg_len);
+#endif
+
+    BOOLEAN ret = TRUE;
+    UINT8 cmac[BT_OCTET16_LEN];
+    if (!aes_cipher_msg_auth_code(key, msg, msg_len, BT_OCTET16_LEN, cmac))
+    {
+        SMP_TRACE_ERROR("%s failed",__FUNCTION__);
+        ret = FALSE;
+    }
+
+#if SMP_DEBUG == TRUE
+    p_print = cmac;
+    smp_debug_print_nbyte_little_endian (p_print, (const UINT8 *)"AES-CMAC", BT_OCTET16_LEN);
+#endif
+
+    p = c;
+    ARRAY_TO_STREAM(p, cmac, BT_OCTET16_LEN);
+    return ret;
+}
+
+/*******************************************************************************
+**
+** Function         smp_calculate_h7
+**
+** Description      The function calculates
+**                  C = h7(SALT, W) = AES-CMAC   (W)
+**                                            SALT
+**                  where
+**                  input:  W is 128 bit,
+**                          SALT is 128 bit,
+**                  output: C is 128 bit.
+**
+** Returns          FALSE if out of resources, TRUE in other cases.
+**
+** Note             The LSB is the first octet, the MSB is the last octet of
+**                  the AES-CMAC input/output stream.
+**
+*******************************************************************************/
+BOOLEAN smp_calculate_h7(UINT8 *salt, UINT8 *w, UINT8 *c)
+{
+#if SMP_DEBUG == TRUE
+    UINT8   *p_print = NULL;
+#endif
+
+    SMP_TRACE_DEBUG ("%s",__FUNCTION__);
+#if SMP_DEBUG == TRUE
+    p_print = w;
+    smp_debug_print_nbyte_little_endian (p_print, (const UINT8 *)"W", BT_OCTET16_LEN);
+    p_print = salt;
+    smp_debug_print_nbyte_little_endian (p_print, (const UINT8 *)"SALT", BT_OCTET16_LEN);
+#endif
+
+    UINT8 *p = NULL;
+    UINT8 key[BT_OCTET16_LEN];
+
+    p = key;
+    ARRAY_TO_STREAM(p, salt, BT_OCTET16_LEN);
+
+#if SMP_DEBUG == TRUE
+    p_print = key;
+    smp_debug_print_nbyte_little_endian (p_print, (const UINT8 *)"K", BT_OCTET16_LEN);
+#endif
+
+    UINT8 msg_len = BT_OCTET16_LEN /* msg size */;
+    UINT8 msg[BT_OCTET16_LEN];
+
+    p = msg;
+    ARRAY_TO_STREAM(p, w, BT_OCTET16_LEN);
 
 #if SMP_DEBUG == TRUE
     p_print = msg;
