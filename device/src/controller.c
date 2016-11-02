@@ -394,6 +394,11 @@ static bool supports_reading_remote_extended_features(void) {
   return HCI_READ_REMOTE_EXT_FEATURES_SUPPORTED(supported_commands);
 }
 
+static bool supports_set_le_privacy_mode(void) {
+  assert(readable);
+  return (HCI_LE_SET_PRIVACY_MODE_SUPPORTED(supported_commands));
+}
+
 static bool supports_interlaced_inquiry_scan(void) {
   assert(readable);
   return HCI_LMP_INTERLACED_INQ_SCAN_SUPPORTED(features_classic[0].as_array);
@@ -527,6 +532,7 @@ static const controller_t interface = {
   supports_rssi_with_inquiry_results,
   supports_extended_inquiry_response,
   supports_master_slave_role_switch,
+  supports_set_le_privacy_mode,
 
   supports_ble,
   supports_ble_packet_extension,

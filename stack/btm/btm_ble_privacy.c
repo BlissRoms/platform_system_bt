@@ -807,6 +807,12 @@ BOOLEAN btm_ble_resolving_list_load_dev(tBTM_SEC_DEV_REC *p_dev_rec)
                     // use identical IRK for now
                     rt = btsnd_hcic_ble_add_device_resolving_list(p_dev_rec->ble.static_addr_type,
                               p_dev_rec->ble.static_addr, peer_irk, local_irk);
+                    if (rt && controller_get_interface()->supports_set_le_privacy_mode()) {
+                        BTM_TRACE_DEBUG("%s:adding device privacy mode", __func__);
+                        rt = btsnd_hcic_ble_set_privacy_mode(p_dev_rec->ble.static_addr_type,
+                                                             p_dev_rec->ble.static_addr,
+                                                             0x01);
+                    }
                 }
                 else
                 {
