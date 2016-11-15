@@ -43,6 +43,7 @@
 #include "btif_av_co.h"
 #include "btif_util.h"
 #include "osi/include/mutex.h"
+#include "device/include/interop.h"
 
 #include "bt_utils.h"
 #include "a2d_aptx.h"
@@ -1710,6 +1711,9 @@ static BOOLEAN bta_av_co_audio_peer_supports_codec(tBTA_AV_CO_PEER *p_peer, UINT
 {
     int index;
     UINT8 codec_type;
+    bt_bdaddr_t remote_bdaddr;
+    bdcpy(remote_bdaddr.address, p_peer->addr);
+
     FUNC_TRACE();
 
     /* Configure the codec type to look for */
@@ -1804,7 +1808,8 @@ static BOOLEAN bta_av_co_audio_peer_supports_codec(tBTA_AV_CO_PEER *p_peer, UINT
         APPL_TRACE_DEBUG("%s aptX is disabled", __func__);
 
 #if defined(AAC_ENCODER_INCLUDED) && (AAC_ENCODER_INCLUDED == TRUE)
-    if (bt_split_a2dp_enabled && btif_av_is_codec_offload_supported(AAC)) {
+    if (bt_split_a2dp_enabled && btif_av_is_codec_offload_supported(AAC) &&
+          !interop_match_addr(INTEROP_DISABLE_AAC_CODEC, &remote_bdaddr)) {
         for (index = 0; index < p_peer->num_sup_snks; index++)
         {
             APPL_TRACE_DEBUG("%s AAC: index: %d, codec_type: %d", __func__, index, p_peer->snks[index].codec_type);

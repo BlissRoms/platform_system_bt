@@ -105,6 +105,9 @@ typedef enum {
   // Few remote devices do not understand AVRCP version greater than 1.3. For these
   // devices, we would like to blacklist them and advertise AVRCP version as 1.3
   INTEROP_ADV_AVRCP_VER_1_3,
+  // certain remote A2DP sinks have issue playing back Music in AAC format.
+  // disable AAC for those headsets so that it switch to SBC
+  INTEROP_DISABLE_AAC_CODEC,
 } interop_feature_t;
 
 // Check if a given |addr| matches a known interoperability workaround as identified

@@ -125,6 +125,8 @@ static const interop_addr_entry_t interop_addr_database[] = {
 
   // Mazda Atenza
   {{{0x04, 0xf8, 0xc2,      0,0,0}}, 3, INTEROP_DISABLE_ABSOLUTE_VOLUME},
+  // Beats Solo 3
+  {{{0x20, 0x3c, 0xae,      0,0,0}}, 3, INTEROP_DISABLE_AAC_CODEC},
 };
 
 typedef struct {
