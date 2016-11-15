@@ -832,9 +832,13 @@ void bta_dm_remove_device(tBTA_DM_MSG *p_data)
         /* Take the link down first, and mark the device for removal when disconnected */
         for(int i=0; i < bta_dm_cb.device_list.count; i++)
         {
-            if (!bdcmp(bta_dm_cb.device_list.peer_device[i].peer_bdaddr, other_address))
+            if ((!bdcmp(bta_dm_cb.device_list.peer_device[i].peer_bdaddr, other_address))&&
+               ((other_transport && (other_transport == bta_dm_cb.device_list.peer_device[i].transport)) ||
+               !other_transport))
             {
                 bta_dm_cb.device_list.peer_device[i].conn_state = BTA_DM_UNPAIRING;
+                APPL_TRACE_DEBUG("%s:transport = %d ,other_transport = %d", __func__,
+                                  bta_dm_cb.device_list.peer_device[i].transport, other_transport);
                 btm_remove_acl(other_address,bta_dm_cb.device_list.peer_device[i].transport);
                 break;
             }
