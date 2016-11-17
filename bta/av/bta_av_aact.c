@@ -3209,7 +3209,9 @@ void bta_av_chk_2nd_start (tBTA_AV_SCB *p_scb, tBTA_AV_DATA *p_data)
     BOOLEAN new_started = FALSE;
     UNUSED(p_data);
 
-    if ((p_scb->chnl == BTA_AV_CHNL_AUDIO) && (bta_av_cb.audio_open_cnt >= 2))
+    APPL_TRACE_DEBUG("%s\n", __func__);
+    if ((p_scb->chnl == BTA_AV_CHNL_AUDIO) && (bta_av_cb.audio_open_cnt >= 2) &&
+         bta_av_is_multicast_enabled())
     {
         /* more than one audio channel is connected */
         if (!(p_scb->role & BTA_AV_ROLE_SUSPEND_OPT))
