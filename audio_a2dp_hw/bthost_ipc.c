@@ -1008,7 +1008,7 @@ int audio_stream_open()
         INFO("control path open successful");
         /*Delay to ensure Headset is in proper state when START is initiated
         from DUT immediately after the connection due to ongoing music playback. */
-        usleep(250000);
+        usleep(1000000);
         a2dp_command(&audio_stream,A2DP_CTRL_CMD_OFFLOAD_SUPPORTED);
         return 0;
     }
