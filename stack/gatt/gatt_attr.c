@@ -235,7 +235,7 @@ static void gatt_connect_cback (tGATT_IF gatt_if, BD_ADDR bda, UINT16 conn_id,
 {
     UNUSED(gatt_if);
 
-    GATT_TRACE_EVENT ("%s:  from %08x%04x connected:%d conn_id=%d reason = 0x%04x", __FUNCTION__,
+    GATT_TRACE_EVENT ("%s: from %08x%04x connected:%d conn_id=%d reason = 0x%04x", __FUNCTION__,
                        (bda[0]<<24)+(bda[1]<<16)+(bda[2]<<8)+bda[3],
                        (bda[4]<<8)+bda[5], connected, conn_id, reason);
 
@@ -457,7 +457,7 @@ void GATT_ConfigServiceChangeCCC (BD_ADDR remote_bda, BOOLEAN enable, tBT_TRANSP
         p_clcb->connected = TRUE;
     }
     /* hold the link here */
-    GATT_Connect(gatt_cb.gatt_if, remote_bda, TRUE, transport);
+    GATT_Connect(gatt_cb.gatt_if, remote_bda, TRUE, transport, true);
     p_clcb->ccc_stage = GATT_SVC_CHANGED_CONNECTING;
 
     if (!p_clcb->connected)
