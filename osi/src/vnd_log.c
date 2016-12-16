@@ -39,7 +39,7 @@ static const char *LOGGER_LIBRARY_NAME = "libbt-logClient.so";
 static const char *LOGGER_LIBRARY_SYMBOL_NAME = "BLUETOOTH_LOGGER_LIB_INTERFACE";
 
 static void *lib_handle;
-bt_logger_interface_t *logger_interface;
+bt_logger_interface_t *logger_interface = NULL;
 bool bt_logger_enabled = false;
 
 void init_vnd_Logger(void)
@@ -47,6 +47,12 @@ void init_vnd_Logger(void)
   if(!bt_logger_enabled)
   {
     LOG_ERROR(LOG_TAG, "%s, Logger Not enabled from config file",  __func__);
+    return;
+  }
+
+  if(logger_interface)
+  {
+    LOG_ERROR(LOG_TAG, "%s, Vendor Logger is already initialized",  __func__);
     return;
   }
 
@@ -74,9 +80,10 @@ void clean_vnd_logger()
   if(logger_interface)
     logger_interface->cleanup();
 
+  logger_interface = NULL;
+
   if(lib_handle)
     dlclose(lib_handle);
 
-  logger_interface = NULL;
   lib_handle = NULL;
 }
