@@ -767,6 +767,10 @@ static void btif_recv_ctrl_data(void)
                 a2dp_cmd_acknowledge(A2DP_CTRL_ACK_INCALL_FAILURE);
                 break;
             }
+            APPL_TRACE_DEBUG("%s:A2DP command %s AV stream_started_ready %d",
+                             __func__, dump_a2dp_ctrl_event(cmd),btif_av_stream_started_ready());
+            APPL_TRACE_DEBUG("%s:A2DP command %s AV stream_ready %d",
+                             __func__, dump_a2dp_ctrl_event(cmd),btif_av_stream_ready());
 
             if (alarm_is_scheduled(btif_media_cb.media_alarm))
             {
@@ -852,6 +856,8 @@ static void btif_recv_ctrl_data(void)
 
         case A2DP_CTRL_CMD_SUSPEND:
             /* local suspend */
+            APPL_TRACE_DEBUG("%s:A2DP command %s AV stream_started_ready %d",
+                             __func__, dump_a2dp_ctrl_event(cmd),btif_av_stream_started_ready());
             if (btif_av_stream_started_ready())
             {
                 APPL_TRACE_DEBUG("Suspend stream request to Av");
@@ -869,6 +875,8 @@ static void btif_recv_ctrl_data(void)
                 /* if we are not in started state, just ack back ok and let
                    audioflinger close the channel. This can happen if we are
                    remotely suspended, clear REMOTE SUSPEND Flag */
+                APPL_TRACE_DEBUG("%s:A2DP command %s AV stream_started_ready clear flag",
+                             __func__, dump_a2dp_ctrl_event(cmd));
                 btif_av_clear_remote_suspend_flag();
                 a2dp_cmd_acknowledge(A2DP_CTRL_ACK_SUCCESS);
             }
