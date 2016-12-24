@@ -53,6 +53,7 @@ typedef struct controller_t {
   bool (*supports_rssi_with_inquiry_results)(void);
   bool (*supports_extended_inquiry_response)(void);
   bool (*supports_master_slave_role_switch)(void);
+  bool (*supports_set_le_privacy_mode)(void);
 
   bool (*supports_ble)(void);
   bool (*supports_ble_packet_extension)(void);
