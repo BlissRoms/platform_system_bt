@@ -174,6 +174,7 @@ static bt_status_t btif_in_fetch_bonded_device(const char *bdstr);
 static int prop2cfg(bt_bdaddr_t *remote_bd_addr, bt_property_t *prop)
 {
     bdstr_t bdstr = {0};
+    int name_length = 0;
     if(remote_bd_addr)
         bdaddr_to_string(remote_bd_addr, bdstr, sizeof(bdstr));
     BTIF_TRACE_DEBUG("in, bd addr:%s, prop type:%d, len:%d", bdstr, prop->type, prop->len);
@@ -190,8 +191,10 @@ static int prop2cfg(bt_bdaddr_t *remote_bd_addr, bt_property_t *prop)
                                 BTIF_STORAGE_PATH_REMOTE_DEVTIME, (int)time(NULL));
             break;
         case BT_PROPERTY_BDNAME:
-            strncpy(value, (char*)prop->val, prop->len);
-            value[prop->len]='\0';
+            name_length = prop->len > BTM_MAX_LOC_BD_NAME_LEN ? BTM_MAX_LOC_BD_NAME_LEN:
+                                                                               prop->len;
+            strncpy(value, (char*)prop->val, name_length);
+            value[name_length]='\0';
             if(remote_bd_addr)
                 btif_config_set_str(bdstr,
                                 BTIF_STORAGE_PATH_REMOTE_NAME, value);
