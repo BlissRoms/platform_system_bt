@@ -3608,7 +3608,7 @@ UINT16 btif_av_get_streaming_channel_id(void)
 **
 ** Function         btif_av_get_peer_addr
 **
-** Description     Returns peer device address
+** Description     Returns peer device address.
 **
 ** Returns          peer address
 ********************************************************************************/
@@ -3620,7 +3620,8 @@ void btif_av_get_peer_addr(bt_bdaddr_t *peer_bda)
     for (i = 0; i < btif_max_av_clients; i++)
     {
         state = btif_sm_get_state(btif_av_cb[i].sm_handle);
-        if (state == BTIF_AV_STATE_STARTED)
+        if ((state == BTIF_AV_STATE_OPENED) ||
+            (state == BTIF_AV_STATE_STARTED))
         {
             BTIF_TRACE_DEBUG("btif_av_get_peer_addr: %u",
                     btif_av_cb[i].peer_bda);
