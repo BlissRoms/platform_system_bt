@@ -33,6 +33,7 @@
 #include "btm_api.h"
 #include "bt_common.h"
 #include "utl.h"
+//#include "osi/include/log.h"
 
 #ifndef BTA_AG_SCO_DEBUG
 #define BTA_AG_SCO_DEBUG FALSE
@@ -691,6 +692,10 @@ BOOLEAN bta_ag_attempt_msbc_safe_settings(tBTA_AG_SCB *p_scb)
 static void bta_ag_codec_negotiation_timer_cback(void *data)
 {
     tBTA_AG_SCB *p_scb = (tBTA_AG_SCB *)data;
+
+    APPL_TRACE_IMP("codec negotiation timedout, aborting SCO/eSCO creation");
+
+    GENERATE_VND_LOGS();
 
     /* Announce that codec negotiation failed. */
     bta_ag_sco_codec_nego(p_scb, FALSE);

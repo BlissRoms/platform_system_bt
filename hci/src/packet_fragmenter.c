@@ -153,6 +153,7 @@ static void reassemble_and_dispatch(UNUSED_ATTR BT_HDR *packet) {
       if (acl_length < L2CAP_HEADER_SIZE) {
         LOG_WARN(LOG_TAG, "%s L2CAP packet too small (%d < %d). Dropping it.", __func__, packet->len, L2CAP_HEADER_SIZE);
         buffer_allocator->free(packet);
+        GENERATE_VND_LOGS();
         return;
       }
 
@@ -164,6 +165,7 @@ static void reassemble_and_dispatch(UNUSED_ATTR BT_HDR *packet) {
           ((full_length + sizeof(BT_HDR)) > BT_DEFAULT_BUFFER_SIZE)) {
         LOG_ERROR(LOG_TAG, "%s L2CAP packet has invalid length (%d). Dropping it.", __func__, l2cap_length);
         buffer_allocator->free(packet);
+        GENERATE_VND_LOGS();
         return;
       }
 
@@ -194,6 +196,7 @@ static void reassemble_and_dispatch(UNUSED_ATTR BT_HDR *packet) {
       if (!partial_packet) {
         LOG_WARN(LOG_TAG, "%s got continuation for unknown packet. Dropping it.", __func__);
         buffer_allocator->free(packet);
+        GENERATE_VND_LOGS();
         return;
       }
 

@@ -636,25 +636,30 @@ static void timer_callback(UNUSED_ATTR void *ptr) {
 // thread for that alarm.
 static void callback_dispatch(UNUSED_ATTR void *context) {
   while (true) {
+    period_ms_t just_now;
     semaphore_wait(alarm_expired);
     if (!dispatcher_thread_active)
       break;
 
     pthread_mutex_lock(&monitor);
     alarm_t *alarm;
+    just_now = now();
 
     // Take into account that the alarm may get cancelled before we get to it.
     // We're done here if there are no alarms or the alarm at the front is in
     // the future. Release the monitor lock and exit right away since there's
     // nothing left to do.
     if (list_is_empty(alarms) ||
-        (alarm = list_front(alarms))->deadline > now()) {
+        (alarm = list_front(alarms))->deadline > just_now) {
       reschedule_root_alarm();
       pthread_mutex_unlock(&monitor);
       continue;
     }
 
     list_remove(alarms, alarm);
+
+    if(just_now - alarm->deadline > 1000)
+      LOG_DEBUG(LOG_TAG, "%s Delay in timer callback", __func__);
 
     if (alarm->is_periodic) {
       alarm->prev_deadline = alarm->deadline;

@@ -218,6 +218,11 @@ void vnd_LogMsg(uint32_t trace_set_mask, const char *fmt_str, ...) {
   va_end(ap);
 }
 
+void vnd_GenerateLogs() {
+  if(logger_interface)
+    logger_interface->send_event(GENERATE_VND_LOG_SIGNAL);
+}
+
 /* this function should go into BTAPP_DM for example */
 static uint8_t BTAPP_SetTraceLevel(uint8_t new_level) {
   if (new_level != 0xFF)

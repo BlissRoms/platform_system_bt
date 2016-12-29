@@ -777,6 +777,7 @@ void btm_pm_proc_cmd_status(UINT8 status)
     else /* the command was not successfull. Stay in the same state */
     {
         pm_status = BTM_PM_STS_ERROR;
+        GENERATE_VENDOR_LOGS();
     }
 
     /* notify the caller is appropriate */

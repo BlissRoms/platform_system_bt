@@ -838,6 +838,9 @@ void bta_ag_sm_execute(tBTA_AG_SCB *p_scb, UINT16 event, tBTA_AG_DATA *p_data)
         return;
     }
 
+    /* If SLC time out, dump the logs */
+    if (event == BTA_AG_SVC_TIMEOUT_EVT)
+        GENERATE_VND_LOGS();
     /* look up the state table for the current state */
     state_table = bta_ag_st_tbl[p_scb->state];
 

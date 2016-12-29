@@ -148,6 +148,7 @@ static void bta_hf_client_at_resp_timer_cback(UNUSED_ATTR void *data)
     bta_hf_client_handle_ok();
   } else {
     APPL_TRACE_ERROR("HFPClient: AT response timeout, disconnecting");
+    GENERATE_VND_LOGS();
     bta_hf_client_sm_execute(BTA_HF_CLIENT_API_CLOSE_EVT, NULL);
   }
 }

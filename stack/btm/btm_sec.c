@@ -4302,6 +4302,7 @@ void btm_sec_encrypt_change (UINT16 handle, UINT8 status, UINT8 encr_enable)
         {
             p_dev_rec->sec_flags &= ~ (BTM_SEC_LE_LINK_KEY_KNOWN);
             p_dev_rec->ble.key_type = BTM_LE_KEY_NONE;
+            GENERATE_VENDOR_LOGS();
         }
         else if (status == HCI_ERR_KEY_MISSING)
         {
@@ -4361,6 +4362,7 @@ void btm_sec_encrypt_change (UINT16 handle, UINT8 status, UINT8 encr_enable)
 
                 BTM_TRACE_DEBUG("updated link key type to %d", p_dev_rec->link_key_type);
                 btm_send_link_key_notif(p_dev_rec);
+                GENERATE_VENDOR_LOGS();
             }
         }
     }

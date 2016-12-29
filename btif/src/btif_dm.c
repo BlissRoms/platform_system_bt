@@ -1413,6 +1413,13 @@ static void btif_dm_auth_cmpl_evt (tBTA_DM_AUTH_CMPL *p_auth_cmpl)
             default:
                 status =  BT_STATUS_FAIL;
         }
+        if(p_auth_cmpl->fail_reason == HCI_ERR_ENCRY_MODE_NOT_ACCEPTABLE
+                || p_auth_cmpl->fail_reason == HCI_ERR_UNIT_KEY_USED
+                || p_auth_cmpl->fail_reason == HCI_ERR_INSUFFCIENT_SECURITY
+                || p_auth_cmpl->fail_reason == HCI_ERR_PAIRING_WITH_UNIT_KEY_NOT_SUPPORTED
+                || p_auth_cmpl->fail_reason == HCI_ERR_HOST_REJECT_SECURITY
+                || p_auth_cmpl->fail_reason == HCI_ERR_UNSPECIFIED)
+            GENERATE_VND_LOGS();
         /* Special Handling for HID Devices */
         if (check_cod(&bd_addr, COD_HID_POINTING)) {
             /* Remove Device as bonded in nvram as authentication failed */
@@ -1689,16 +1696,18 @@ static void btif_dm_search_services_evt(UINT16 event, char *p_param)
                  (bdcmp(p_data->disc_res.bd_addr, pairing_cb.static_bdaddr.address) == 0)) &&
                   pairing_cb.sdp_attempts > 0)
             {
-                 BTIF_TRACE_DEBUG("%s Remote Service SDP done. Call bond_state_changed_cb BONDED",
-                                   __FUNCTION__);
-                 pairing_cb.sdp_attempts  = 0;
+                BTIF_TRACE_DEBUG("%s Remote Service SDP done. Call bond_state_changed_cb BONDED",
+                                __FUNCTION__);
+                if(p_data->disc_res.result != BTA_SUCCESS)
+                    GENERATE_VND_LOGS();
+                pairing_cb.sdp_attempts  = 0;
 
-                 // If bonding occured due to cross-key pairing, send bonding callback
-                 // for static address now
-                 if (bdcmp(p_data->disc_res.bd_addr, pairing_cb.static_bdaddr.address) == 0)
+                // If bonding occured due to cross-key pairing, send bonding callback
+                // for static address now
+                if (bdcmp(p_data->disc_res.bd_addr, pairing_cb.static_bdaddr.address) == 0)
                     bond_state_changed(BT_STATUS_SUCCESS, &bd_addr, BT_BOND_STATE_BONDING);
 
-                 bond_state_changed(BT_STATUS_SUCCESS, &bd_addr, BT_BOND_STATE_BONDED);
+                bond_state_changed(BT_STATUS_SUCCESS, &bd_addr, BT_BOND_STATE_BONDED);
             }
 
             if (p_data->disc_res.num_uuids != 0)

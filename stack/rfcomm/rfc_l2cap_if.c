@@ -108,6 +108,7 @@ void RFCOMM_ConnectInd (BD_ADDR bd_addr, UINT16 lcid, UINT16 psm, UINT8 id)
                                   p_mcb->lcid, p_mcb->pending_lcid);
 
             rfc_timer_start(p_mcb, (UINT16)(time_get_os_boottime_ms() % 10 + 2));
+            GENERATE_VENDOR_LOGS();
             return;
         }
         else
