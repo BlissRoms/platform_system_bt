@@ -724,6 +724,14 @@
 #define BLE_INCLUDED            TRUE
 #endif
 
+/*LE_L2CAP_CODE*/
+/*LE Credit Based Flow Control Mode*/
+#if (defined(BLE_INCLUDED) && (BLE_INCLUDED == TRUE))
+#ifndef LE_L2CAP_CFC_INCLUDED
+#define LE_L2CAP_CFC_INCLUDED        TRUE
+#endif  /*LE_L2CAP_CFC_INCLUDED */
+#endif /* BLE_INCLUDED */
+
 #ifndef BLE_ANDROID_CONTROLLER_SCAN_FILTER
 #define BLE_ANDROID_CONTROLLER_SCAN_FILTER            TRUE
 #endif

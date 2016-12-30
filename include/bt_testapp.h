@@ -124,6 +124,14 @@ typedef struct {
     UINT8       (*GetChnlFcrMode)(UINT16 lcid);
     UINT16      (*SendFixedChnlData)(UINT16 fixed_cid, BD_ADDR rem_bda, BT_HDR *p_buf);
     void  (*Cleanup)(void);
+    bt_status_t (*RegisterLePsm) (UINT16 le_psm, BOOLEAN ConnType, UINT16 SecLevel,
+                                    UINT8 enc_key_size);
+    bt_status_t (*LeDeregister)(UINT16 psm);
+    UINT16 (*LeConnect) (UINT16 le_psm , BD_ADDR address, tL2CAP_LE_CFG_INFO *p_cfg);
+    BOOLEAN (*LeConnectRsp) (BD_ADDR p_bd_addr, UINT8 id, UINT16 lcid, UINT16 result,
+                             UINT16 status, tL2CAP_LE_CFG_INFO *p_cfg);
+    BOOLEAN (*LeFlowControl) (UINT16 lcid, UINT16 credits);
+    void (*LeFreeBuf)(BT_HDR *p_buf);
 } btl2cap_interface_t;
 
 typedef struct
