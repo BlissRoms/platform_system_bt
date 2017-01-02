@@ -44,6 +44,7 @@
 #include "osi/include/osi.h"
 #include "sdp_api.h"
 #include "utl.h"
+#include "device/include/interop_config.h"
 
 #if (GAP_INCLUDED == TRUE)
 #include "gap_api.h"
@@ -787,7 +788,7 @@ void bta_dm_remove_device(tBTA_DM_MSG *p_data)
     /* If ACL exists for the device in the remove_bond message*/
     BOOLEAN continue_delete_dev = FALSE;
     UINT8 other_transport = BT_TRANSPORT_INVALID;
-    remove_iot_device(IOT_DEV_CONF_FILE, IOT_ROLE_CHANGE_BLACKLIST,p_dev->bd_addr, METHOD_BD);
+    interop_database_remove_addr(INTEROP_DYNAMIC_ROLE_SWITCH, (bt_bdaddr_t *)&p_dev->bd_addr);
 
     if (BTM_IsAclConnectionUp(p_dev->bd_addr, BT_TRANSPORT_LE) ||
         BTM_IsAclConnectionUp(p_dev->bd_addr, BT_TRANSPORT_BR_EDR))

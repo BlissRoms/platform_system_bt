@@ -33,6 +33,7 @@ LOCAL_C_INCLUDES:= \
                    $(LOCAL_PATH)/../bta/sys \
                    $(LOCAL_PATH)/../utils/include \
                    $(LOCAL_PATH)/../ \
+                   vendor/qcom/opensource/bluetooth/system_bt_ext \
                    $(bluetooth_C_INCLUDES)
 
 LOCAL_SRC_FILES:= \

@@ -130,7 +130,7 @@ static const interop_addr_entry_t interop_addr_database[] = {
 };
 
 typedef struct {
-  char name[40];
+  char name[249];
   size_t length;
   interop_feature_t feature;
 } interop_name_entry_t;

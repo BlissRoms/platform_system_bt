@@ -36,6 +36,7 @@
 #include "bt_common.h"
 #include "utl.h"
 #include "bt_utils.h"
+#include "device/include/interop_config.h"
 
 /* Number of protocol elements in protocol element list. */
 #define BTA_AG_NUM_PROTO_ELEMS      2
@@ -380,16 +381,10 @@ BOOLEAN bta_ag_sdp_find_attr(tBTA_AG_SCB *p_scb, tBTA_SERVICE_MASK service)
             /* Remote supports 1.7, store it in the file */
             if (p_scb->peer_version == HFP_VERSION_1_7)
             {
-                bool ret = FALSE;
-                /* Check if the device is already part of the list, if not store it */
-                ret = is_device_present(IOT_HFP_1_7_BLACKLIST, p_scb->peer_addr);
-
-                if (ret == FALSE)
-                {
-                   add_iot_device(IOT_DEV_CONF_FILE, IOT_HFP_1_7_BLACKLIST,
-                                  p_scb->peer_addr, METHOD_BD);
-                }
+                interop_database_add_addr(INTEROP_HFP_1_7_BLACKLIST,
+                                (bt_bdaddr_t *)&p_scb->peer_addr, 3);
             }
+
         }
         else    /* HSP */
         {
