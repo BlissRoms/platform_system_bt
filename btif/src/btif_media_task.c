@@ -793,9 +793,14 @@ static void btif_recv_ctrl_data(void)
                 else
                 {
                     //UIPC_Open(UIPC_CH_ID_AV_AUDIO, btif_a2dp_data_cb);//Test Remove later
-                    APPL_TRACE_DEBUG("Av stream alreday started");
+                    APPL_TRACE_DEBUG("Av stream already started");
                     if (btif_media_cb.peer_sep == AVDT_TSEP_SNK)
                         btif_a2dp_encoder_update();
+                    if (btif_media_cb.tx_started == FALSE) {
+                        APPL_TRACE_DEBUG("Split a2dp mode, VSC exchange not completed");
+                        a2dp_cmd_acknowledge(A2DP_CTRL_ACK_FAILURE);
+                        break;
+                    }
                 }
                 a2dp_cmd_acknowledge(A2DP_CTRL_ACK_SUCCESS);
             }
