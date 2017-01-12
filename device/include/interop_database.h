@@ -127,6 +127,10 @@ static const interop_addr_entry_t interop_addr_database[] = {
   {{{0x04, 0xf8, 0xc2,      0,0,0}}, 3, INTEROP_DISABLE_ABSOLUTE_VOLUME},
   // Beats Solo 3
   {{{0x20, 0x3c, 0xae,      0,0,0}}, 3, INTEROP_DISABLE_AAC_CODEC},
+  // Cadillac
+  {{{0x28, 0xA1, 0x83,      0,0,0}}, 3, INTEROP_DISABLE_AAC_CODEC},
+  // Buick Verona
+  {{{0xAC, 0x7A, 0x4D,      0,0,0}}, 3, INTEROP_DISABLE_AAC_CODEC},
 };
 
 typedef struct {
