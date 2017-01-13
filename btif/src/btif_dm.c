@@ -370,7 +370,7 @@ static BOOLEAN check_eir_is_remote_name_short(tBTA_DM_SEARCH *p_search_data)
     if (p_search_data->inq_res.p_eir)
     {
         p_eir_remote_name = BTM_CheckEirData(p_search_data->inq_res.p_eir,
-                         BTM_EIR_SHORTENED_LOCAL_NAME_TYPE, &remote_name_len);
+                BTM_EIR_SHORTENED_LOCAL_NAME_TYPE, &remote_name_len, p_search_data->inq_res.adv_data_len);
 
         if (p_eir_remote_name)
         {
@@ -400,11 +400,11 @@ static BOOLEAN check_eir_remote_name(tBTA_DM_SEARCH *p_search_data,
     if (p_search_data->inq_res.p_eir)
     {
         p_eir_remote_name = BTM_CheckEirData(p_search_data->inq_res.p_eir,
-                BTM_EIR_COMPLETE_LOCAL_NAME_TYPE, &remote_name_len);
+                BTM_EIR_COMPLETE_LOCAL_NAME_TYPE, &remote_name_len, p_search_data->inq_res.adv_data_len);
         if (!p_eir_remote_name)
         {
             p_eir_remote_name = BTM_CheckEirData(p_search_data->inq_res.p_eir,
-                    BTM_EIR_SHORTENED_LOCAL_NAME_TYPE, &remote_name_len);
+                    BTM_EIR_SHORTENED_LOCAL_NAME_TYPE, &remote_name_len, p_search_data->inq_res.adv_data_len);
         }
 
         if (p_eir_remote_name)
@@ -3364,7 +3364,10 @@ static void btif_dm_ble_auth_cmpl_evt (tBTA_DM_AUTH_CMPL *p_auth_cmpl)
         } else {
             btif_dm_save_ble_bonding_keys();
             BTA_GATTC_Refresh(bd_addr.address);
-            btif_dm_get_remote_services_by_transport(&bd_addr, BTA_GATT_TRANSPORT_LE);
+            if(!p_auth_cmpl->smp_over_br)
+               btif_dm_get_remote_services_by_transport(&bd_addr, BTA_GATT_TRANSPORT_LE);
+            else
+               btif_dm_get_remote_services(&bd_addr);
         }
     }
     else

@@ -833,6 +833,7 @@ typedef struct
     UINT16                  ediv;       /* received ediv value from LTK request */
     UINT8                   key_size;
     tBTM_BLE_VSC_CB         cmn_ble_vsc_cb;
+    tBTM_BLE_ADV_EXT_CB     ble_adv_ext_cb;
 #endif
 
                                             /* Packet types supported by the local device */
@@ -1057,6 +1058,9 @@ extern BOOLEAN btm_ble_addr_resolvable(BD_ADDR rpa, tBTM_SEC_DEV_REC *p_dev_rec)
 extern tBTM_STATUS btm_ble_read_resolving_list_entry(tBTM_SEC_DEV_REC *p_dev_rec);
 extern BOOLEAN btm_ble_resolving_list_load_dev(tBTM_SEC_DEV_REC *p_dev_rec);
 extern void btm_ble_resolving_list_remove_dev(tBTM_SEC_DEV_REC *p_dev_rec);
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+extern BOOLEAN btm_ble_add_multi_adv_rpa(BD_ADDR bda, tBLE_ADDR_TYPE addr_type);
+#endif
 #endif  /* BLE_INCLUDED */
 
 /* HCI event handler */

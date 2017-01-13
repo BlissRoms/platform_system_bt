@@ -111,6 +111,7 @@ LOCAL_LDLIBS := -Wl,-Bsymbolic,-Bsymbolic-functions
 LOCAL_REQUIRED_MODULES := \
     bt_did.conf \
     bt_stack.conf \
+    interop_database.conf \
     libbt-hci \
     libbt-vendor
 

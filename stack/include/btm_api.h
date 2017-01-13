@@ -30,6 +30,7 @@
 #include "hcidefs.h"
 
 #include "smp_api.h"
+
 /*****************************************************************************
 **  DEVICE CONTROL and COMMON
 *****************************************************************************/
@@ -117,6 +118,13 @@ typedef struct
     UINT8  param_len;
     UINT8   *p_param_buf;
 } tBTM_RAW_CMPL;
+
+typedef struct
+{
+    UINT16 adv_len;
+    UINT8 *adv_data_cache;
+} tBTM_BLE_INQ_DATA_CB;
+
 
 #define  BTM_VSC_CMPL_DATA_SIZE  (BTM_MAX_VENDOR_SPECIFIC_LEN + sizeof(tBTM_VSC_CMPL))
 /**************************************************
@@ -604,7 +612,7 @@ typedef struct              /* contains the parameters passed to the inquiry fun
 #define BTM_BLE_EVT_DISC_ADV        0x02
 #define BTM_BLE_EVT_NON_CONN_ADV    0x03
 #define BTM_BLE_EVT_SCAN_RSP        0x04
-typedef UINT8 tBTM_BLE_EVT_TYPE;
+typedef UINT16 tBTM_BLE_EVT_TYPE;
 #endif
 
 /* These are the fields returned in each device's response to the inquiry.  It
@@ -627,6 +635,14 @@ typedef struct
     UINT8       ble_addr_type;
     tBTM_BLE_EVT_TYPE       ble_evt_type;
     UINT8                   flag;
+    tBTM_BLE_INQ_DATA_CB    inq_data;
+    UINT8       pri_phy;
+    UINT8       sec_phy;
+    UINT8       adv_sid;
+    UINT16      periodic_adv_int;
+    UINT8       direct_addr_type;
+    BD_ADDR     direct_bda;
+    UINT16      adv_data_len;
 #endif
 } tBTM_INQ_RESULTS;
 
@@ -1609,13 +1625,14 @@ typedef UINT8 tBTM_LE_KEY_TYPE;
 #define BTM_LE_AUTH_REQ_MITM    SMP_AUTH_YN_BIT    /* 1 << 2 */
 typedef UINT8 tBTM_LE_AUTH_REQ;
 #define BTM_LE_SC_SUPPORT_BIT           SMP_SC_SUPPORT_BIT     /* (1 << 3) */
-#define BTM_LE_KP_SUPPORT_BIT           SMP_KP_SUPPORT_BIT     /* (1 << 4) */
+#define BTM_LE_KP_SUPPORT_BIT           SMP_KP_SUPPORT_BIT     /* (1 << 4) */`
+#define BTM_LE_H7_SUPPORT_BIT           SMP_H7_SUPPORT_BIT     /* (1 << 5) */`
 
-#define BTM_LE_AUTH_REQ_SC_ONLY         SMP_AUTH_SC_ENC_ONLY    /* 1 << 3 */
-#define BTM_LE_AUTH_REQ_SC_BOND         SMP_AUTH_SC_GB          /* 1001 */
-#define BTM_LE_AUTH_REQ_SC_MITM         SMP_AUTH_SC_MITM_NB     /* 1100 */
-#define BTM_LE_AUTH_REQ_SC_MITM_BOND    SMP_AUTH_SC_MITM_GB     /* 1101 */
-#define BTM_LE_AUTH_REQ_MASK            SMP_AUTH_MASK           /* 0x1D */
+#define BTM_LE_AUTH_REQ_SC_ONLY         SMP_AUTH_SC_ENC_ONLY    /* 00101000 */
+#define BTM_LE_AUTH_REQ_SC_BOND         SMP_AUTH_SC_GB          /* 00101001 */
+#define BTM_LE_AUTH_REQ_SC_MITM         SMP_AUTH_SC_MITM_NB     /* 00101100 */
+#define BTM_LE_AUTH_REQ_SC_MITM_BOND    SMP_AUTH_SC_MITM_GB     /* 00101101 */
+#define BTM_LE_AUTH_REQ_MASK            SMP_AUTH_MASK           /* 0x3D */
 
 /* LE security level */
 #define BTM_LE_SEC_NONE             SMP_SEC_NONE
@@ -3806,7 +3823,7 @@ extern tBTM_STATUS BTM_WriteEIR( BT_HDR * p_buff );
 ** Returns          pointer of EIR data
 **
 *******************************************************************************/
-extern UINT8 *BTM_CheckEirData( UINT8 *p_eir, UINT8 type, UINT8 *p_length );
+extern UINT8 *BTM_CheckEirData( UINT8 *p_eir, UINT8 type, UINT8 *p_length, UINT16 adv_data_len );
 
 /*******************************************************************************
 **

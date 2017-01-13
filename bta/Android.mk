@@ -96,6 +96,7 @@ LOCAL_C_INCLUDES+= . \
                    $(LOCAL_PATH)/../udrv/include \
                    $(LOCAL_PATH)/../vnd/include \
                    $(LOCAL_PATH)/../utils/include \
+                   vendor/qcom/opensource/bluetooth/system_bt_ext \
                    $(bluetooth_C_INCLUDES)
 
 LOCAL_CFLAGS += $(bluetooth_CFLAGS) -DBUILDCFG

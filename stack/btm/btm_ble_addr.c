@@ -60,7 +60,7 @@ static void btm_gen_resolve_paddr_cmpl(tSMP_ENC *p)
         p_cb->private_addr[4] = p->param_buf[1];
         p_cb->private_addr[3] = p->param_buf[2];
         /* set it to controller */
-        btsnd_hcic_ble_set_random_addr(p_cb->private_addr);
+        btm_ble_set_random_address(p_cb->private_addr);
 
         p_cb->own_addr_type = BLE_ADDR_RANDOM;
 
@@ -356,7 +356,7 @@ static BOOLEAN btm_ble_match_random_bda(void *data, void *context)
 **                  address is matched to.
 **
 *******************************************************************************/
-void btm_ble_resolve_random_addr(BD_ADDR random_bda, tBTM_BLE_RESOLVE_CBACK * p_cback, void *p)
+void btm_ble_resolve_random_addr(BD_ADDR random_bda, tBTM_BLE_RESOLVE_CBACK * p_cback, void *p, BOOLEAN extended)
 {
     tBTM_LE_RANDOM_CB   *p_mgnt_cb = &btm_cb.ble_ctr_cb.addr_mgnt_cb;
 
@@ -365,6 +365,7 @@ void btm_ble_resolve_random_addr(BD_ADDR random_bda, tBTM_BLE_RESOLVE_CBACK * p_
         p_mgnt_cb->p = p;
         p_mgnt_cb->busy = TRUE;
         memcpy(p_mgnt_cb->random_bda, random_bda, BD_ADDR_LEN);
+        p_mgnt_cb->extended = extended;
         /* start to resolve random address */
         /* check for next security record */
 
@@ -374,9 +375,9 @@ void btm_ble_resolve_random_addr(BD_ADDR random_bda, tBTM_BLE_RESOLVE_CBACK * p_
         BTM_TRACE_EVENT("%s:  %sresolved", __func__, (p_dev_rec == NULL ? "not " : ""));
         p_mgnt_cb->busy = FALSE;
 
-        (*p_cback)(p_dev_rec, p);
+        (*p_cback)(p_dev_rec, p, extended);
     } else {
-        (*p_cback)(NULL, p);
+        (*p_cback)(NULL, p, extended);
     }
 }
 #endif
@@ -463,7 +464,8 @@ BOOLEAN btm_random_pseudo_to_identity_addr(BD_ADDR random_pseudo, UINT8 *p_stati
         {
             * p_static_addr_type = p_dev_rec->ble.static_addr_type;
             memcpy(random_pseudo, p_dev_rec->ble.static_addr, BD_ADDR_LEN);
-            if (controller_get_interface()->supports_ble_privacy())
+            if (controller_get_interface()->supports_ble_privacy() &&
+                !controller_get_interface()->supports_ble_extended_advertisements())
                 *p_static_addr_type |= BLE_ADDR_TYPE_ID_BIT;
             return TRUE;
         }

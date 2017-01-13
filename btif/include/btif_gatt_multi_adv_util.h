@@ -47,6 +47,7 @@ typedef struct
     uint8_t* p_service_data;
     uint16_t service_uuid_len;
     uint8_t* p_service_uuid;
+    uint8_t frag_preference;
 } btif_adv_data_t;
 
 
@@ -58,7 +59,8 @@ typedef struct
     tBTA_BLE_ADV_PARAMS param;
     alarm_t *multi_adv_timer;
     int timeout_s;
-} btgatt_multi_adv_inst_cb;
+    UINT8 frag_preference;
+}btgatt_multi_adv_inst_cb;
 
 typedef struct
 {

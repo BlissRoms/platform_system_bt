@@ -934,10 +934,10 @@ void BTA_DmSetBleConnScanParams(UINT32 scan_interval, UINT32 scan_window)
 ** Returns          void
 **
 *******************************************************************************/
-
 #if BLE_INCLUDED == TRUE
-void BTA_DmSetBleScanParams(tGATT_IF client_if, UINT32 scan_interval,
-                            UINT32 scan_window, tBLE_SCAN_MODE scan_mode,
+void BTA_DmSetBleScanParams(tGATT_IF client_if, UINT8 scan_phys, UINT32 scan_interval,
+                            UINT32 scan_window, UINT16 scan_interval_coded,
+                            UINT16 scan_window_coded, tBLE_SCAN_MODE scan_mode,
                             tBLE_SCAN_PARAM_SETUP_CBACK scan_param_setup_cback)
 {
     tBTA_DM_API_BLE_SCAN_PARAMS *p_msg =
@@ -945,11 +945,14 @@ void BTA_DmSetBleScanParams(tGATT_IF client_if, UINT32 scan_interval,
 
     p_msg->hdr.event = BTA_DM_API_BLE_SCAN_PARAM_EVT;
     p_msg->client_if = client_if;
+    p_msg->scan_phys = scan_phys;
     p_msg->scan_int = scan_interval;
     p_msg->scan_window = scan_window;
+    p_msg->scan_int_coded = scan_interval_coded;
+    p_msg->scan_window_coded = scan_window_coded;
+
     p_msg->scan_mode = scan_mode;
     p_msg->scan_param_setup_cback = scan_param_setup_cback;
-
     bta_sys_sendmsg(p_msg);
 }
 #endif  // BLE_INCLUDED == TRUE
@@ -1543,18 +1546,19 @@ void BTA_BleUpdateAdvInstParam (UINT8 inst_id, tBTA_BLE_ADV_PARAMS *p_params)
 **
 *******************************************************************************/
 void BTA_BleCfgAdvInstData (UINT8 inst_id, BOOLEAN is_scan_rsp,
-                            tBTA_BLE_AD_MASK data_mask,
+                            tBTA_BLE_AD_MASK data_mask, UINT8 frag_pref,
                             tBTA_BLE_ADV_DATA *p_data)
 {
-  tBTA_DM_API_BLE_MULTI_ADV_DATA *p_msg = osi_calloc(sizeof(*p_msg));
+    tBTA_DM_API_BLE_MULTI_ADV_DATA *p_msg = osi_calloc(sizeof(*p_msg));
 
-  p_msg->hdr.event = BTA_DM_API_BLE_MULTI_ADV_DATA_EVT;
-  p_msg->inst_id = inst_id;
-  p_msg->is_scan_rsp = is_scan_rsp;
-  p_msg->data_mask = data_mask;
-  memcpy(&p_msg->data, p_data, sizeof(p_msg->data));
+    p_msg->hdr.event     = BTA_DM_API_BLE_MULTI_ADV_DATA_EVT;
+    p_msg->inst_id      = inst_id;
+    p_msg->is_scan_rsp  = is_scan_rsp;
+    p_msg->data_mask     = data_mask;
+    memcpy(&p_msg->data, p_data, sizeof(p_msg->data));
+    p_msg->frag_pref     = frag_pref;
 
-  bta_sys_sendmsg(p_msg);
+    bta_sys_sendmsg(p_msg);
 }
 
 /*******************************************************************************
@@ -1880,6 +1884,59 @@ void BTA_DmBleSetDataLength(BD_ADDR remote_device, UINT16 tx_data_length)
     bta_sys_sendmsg(p_msg);
 }
 
+/*******************************************************************************
+**
+** Function         BTA_DmBleSetPhy
+**
+** Description      This function is to set Tx and Rx Phy for a connection
+**
+** Returns          void
+**
+*******************************************************************************/
+void BTA_DmBleSetPhy(BD_ADDR remote_device, UINT8 all_phy, UINT8 tx_phy,
+                     UINT8 rx_phy, UINT16 phy_options)
+{
+    tBTA_DM_API_BLE_SET_PHY *p_msg;
+
+    if ((p_msg = (tBTA_DM_API_BLE_SET_PHY *)osi_malloc(sizeof(tBTA_DM_API_BLE_SET_PHY)))
+                  != NULL)
+    {
+        bdcpy(p_msg->remote_bda, remote_device);
+        p_msg->all_phy = all_phy;
+        p_msg->tx_phy = tx_phy;
+        p_msg->rx_phy = rx_phy;
+        p_msg->phy_options = phy_options;
+        p_msg->hdr.event = BTA_DM_API_SET_BLE_PHY_EVT;
+
+        bta_sys_sendmsg(p_msg);
+    }
+}
+
+/*******************************************************************************
+**
+** Function         BTA_DmBleSetDefaultPhy
+**
+** Description      This function is to set default Tx and Rx Phy
+**
+** Returns          void
+**
+*******************************************************************************/
+void BTA_DmBleSetDefaultPhy(UINT8 all_phy, UINT8 tx_phy, UINT8 rx_phy)
+{
+    tBTA_DM_API_BLE_SET_DEFAULT_PHY *p_msg;
+
+    if ((p_msg = (tBTA_DM_API_BLE_SET_DEFAULT_PHY *)osi_malloc(sizeof(tBTA_DM_API_BLE_SET_DEFAULT_PHY)))
+                  != NULL)
+    {
+        p_msg->all_phy = all_phy;
+        p_msg->tx_phy = tx_phy;
+        p_msg->rx_phy = rx_phy;
+        p_msg->hdr.event = BTA_DM_API_SET_DEFAULT_BLE_PHY_EVT;
+
+        bta_sys_sendmsg(p_msg);
+    }
+}
+
 #endif
 
 /*******************************************************************************
@@ -1964,7 +2021,7 @@ void BTA_DmCloseACL(BD_ADDR bd_addr, BOOLEAN remove_dev, tBTA_TRANSPORT transpor
 ** Returns          void.
 **
 *******************************************************************************/
-extern void BTA_DmBleObserve(BOOLEAN start, UINT8 duration,
+extern void BTA_DmBleObserve(BOOLEAN start, UINT16 duration, UINT16 period,
                              tBTA_DM_SEARCH_CBACK *p_results_cb)
 {
     tBTA_DM_API_BLE_OBSERVE *p_msg =
@@ -1975,6 +2032,7 @@ extern void BTA_DmBleObserve(BOOLEAN start, UINT8 duration,
     p_msg->hdr.event = BTA_DM_API_BLE_OBSERVE_EVT;
     p_msg->start = start;
     p_msg->duration = duration;
+    p_msg->period = period;
     p_msg->p_cback = p_results_cb;
 
     bta_sys_sendmsg(p_msg);

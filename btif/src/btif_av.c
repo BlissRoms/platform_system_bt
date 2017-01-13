@@ -1167,7 +1167,10 @@ static BOOLEAN btif_av_state_opened_handler(btif_sm_event_t event, void *p_data,
             /* if remote tries to start a2dp when call is in progress, suspend it right away */
             if ((!(btif_av_cb[index].flags & BTIF_AV_FLAG_PENDING_START)) && (!btif_hf_is_call_idle())) {
                 BTIF_TRACE_EVENT("%s: trigger suspend as call is in progress!!", __FUNCTION__);
+                btif_av_cb[index].flags &= ~BTIF_AV_FLAG_PENDING_START;
+                btif_sm_change_state(btif_av_cb[index].sm_handle, BTIF_AV_STATE_STARTED);
                 btif_dispatch_sm_event(BTIF_AV_SUSPEND_STREAM_REQ_EVT, NULL, 0);
+                break;
             }
 
             /* if remote tries to start a2dp when DUT is a2dp source
@@ -3605,7 +3608,7 @@ UINT16 btif_av_get_streaming_channel_id(void)
 **
 ** Function         btif_av_get_peer_addr
 **
-** Description     Returns peer device address
+** Description     Returns peer device address.
 **
 ** Returns          peer address
 ********************************************************************************/
@@ -3617,7 +3620,8 @@ void btif_av_get_peer_addr(bt_bdaddr_t *peer_bda)
     for (i = 0; i < btif_max_av_clients; i++)
     {
         state = btif_sm_get_state(btif_av_cb[i].sm_handle);
-        if (state == BTIF_AV_STATE_STARTED)
+        if ((state == BTIF_AV_STATE_OPENED) ||
+            (state == BTIF_AV_STATE_STARTED))
         {
             BTIF_TRACE_DEBUG("btif_av_get_peer_addr: %u",
                     btif_av_cb[i].peer_bda);

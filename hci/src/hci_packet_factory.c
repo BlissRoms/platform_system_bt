@@ -133,6 +133,10 @@ static BT_HDR *make_ble_read_resolving_list_size(void) {
   return make_command_no_params(HCI_BLE_READ_RESOLVING_LIST_SIZE);
 }
 
+static BT_HDR *make_ble_read_adv_ext_size(void) {
+  return make_command_no_params(HCI_BLE_READ_NUM_ADV_SETS);
+}
+
 static BT_HDR *make_ble_read_suggested_default_data_length(void) {
     return make_command_no_params(HCI_BLE_READ_DEFAULT_DATA_LENGTH);
 }
@@ -200,6 +204,7 @@ static const hci_packet_factory_t interface = {
   make_ble_read_supported_states,
   make_ble_read_local_supported_features,
   make_ble_read_resolving_list_size,
+  make_ble_read_adv_ext_size,
   make_ble_read_suggested_default_data_length,
   make_ble_set_event_mask,
   make_read_local_supported_codecs,

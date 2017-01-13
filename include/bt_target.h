@@ -748,6 +748,10 @@
 #define BLE_PRIVACY_SPT         TRUE
 #endif
 
+#ifndef BLE_EXTENDED_ADV_SUPPORT
+#define BLE_EXTENDED_ADV_SUPPORT TRUE
+#endif
+
 /*
  * Enables or disables support for local privacy (ex. address rotation)
  */

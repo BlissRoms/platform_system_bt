@@ -42,6 +42,7 @@
 #include "sdpint.h"
 #include "device/include/interop.h"
 #include "btif/include/btif_storage.h"
+#include "device/include/interop_config.h"
 #include <errno.h>
 #include <cutils/properties.h>
 #include <hardware/bluetooth.h>
@@ -310,7 +311,7 @@ BOOLEAN sdp_change_hfp_version (tSDP_ATTRIBUTE *p_attr, BD_ADDR remote_address)
         if (((p_attr->value_ptr[3] << 8) | (p_attr->value_ptr[4])) ==
                 UUID_SERVCLASS_HF_HANDSFREE)
         {
-            is_blacklisted = is_device_present(IOT_HFP_1_7_BLACKLIST, remote_address);
+            is_blacklisted = interop_database_match_addr(INTEROP_HFP_1_7_BLACKLIST, (bt_bdaddr_t *)&remote_address);
             SDP_TRACE_DEBUG("%s: HF version is 1.7 for BD addr: %x:%x:%x",\
                            __func__, remote_address[0], remote_address[1], remote_address[2]);
             /* For PTS we should show AG's HFP version as 1.7 */

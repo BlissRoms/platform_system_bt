@@ -25,13 +25,15 @@
 static const char INTEROP_MODULE[] = "interop_module";
 
 // NOTE:
-// Only add values at the end of this enum and do NOT delete values
-// as they may be used in dynamic device configuration.
+// Only add values at the end of this enum and before END_OF_INTEROP_LIST
+// do NOT delete values as they may be used in dynamic device configuration.
 typedef enum {
+
+  BEGINING_OF_INTEROP_LIST = 0,
   // Disable secure connections
   // This is for pre BT 4.1/2 devices that do not handle secure mode
   // very well.
-  INTEROP_DISABLE_LE_SECURE_CONNECTIONS = 0,
+  INTEROP_DISABLE_LE_SECURE_CONNECTIONS = BEGINING_OF_INTEROP_LIST,
 
   // Some devices have proven problematic during the pairing process, often
   // requiring multiple retries to complete pairing. To avoid degrading the user
@@ -105,6 +107,29 @@ typedef enum {
   // Few remote devices do not understand AVRCP version greater than 1.3. For these
   // devices, we would like to blacklist them and advertise AVRCP version as 1.3
   INTEROP_ADV_AVRCP_VER_1_3,
+  // certain remote A2DP sinks have issue playing back Music in AAC format.
+  // disable AAC for those headsets so that it switch to SBC
+  INTEROP_DISABLE_AAC_CODEC,
+
+  // Some car kits notifies role switch supported but it rejects
+  // the role switch and after some attempts of role switch
+  // car kits will go to bad state.
+  INTEROP_DYNAMIC_ROLE_SWITCH,
+
+  // Disable role switch for headsets/car-kits
+  // Some car kits allow role switch but when DUT initiates role switch
+  // Remote will go to bad state and its leads to LMP time out.
+  INTEROP_DISABLE_ROLE_SWITCH,
+
+  // Disable role switch for headsets/car-kits
+  // Some car kits initiate a role switch but won't initiate encryption
+  // after role switch complete
+  INTEROP_DISABLE_ROLE_SWITCH_POLICY,
+
+  INTEROP_HFP_1_7_BLACKLIST,
+
+  END_OF_INTEROP_LIST
+
 } interop_feature_t;
 
 // Check if a given |addr| matches a known interoperability workaround as identified

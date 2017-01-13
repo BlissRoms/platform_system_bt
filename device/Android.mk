@@ -29,12 +29,13 @@ LOCAL_C_INCLUDES := \
     $(LOCAL_PATH)/../hci/include \
     $(LOCAL_PATH)/../include \
     $(LOCAL_PATH)/../stack/include \
+    vendor/qcom/opensource/bluetooth/system_bt_ext \
     $(bluetooth_C_INCLUDES)
 
 LOCAL_SRC_FILES := \
     src/classic/peer.c \
     src/controller.c \
-    src/interop.c
+    ../../../vendor/qcom/opensource/bluetooth/system_bt_ext/device/src/interop.c
 
 LOCAL_MODULE := libbtdevice
 LOCAL_MODULE_TAGS := optional
