@@ -611,9 +611,12 @@ BOOLEAN btm_ble_suspend_resolving_list_activity(void)
         p_ble_cb->suspended_rl_state |= BTM_BLE_RL_INIT;
 
 #if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
-    /* Disable extended adv sets if any is enabled*/
-    p_ble_cb->suspended_rl_state |= BTM_BLE_RL_EXT_ADV;
-    btm_ble_multi_adv_enable_all(FALSE);
+    if (controller_get_interface()->supports_ble_extended_advertisements())
+    {
+      /* Disable extended adv sets if any is enabled*/
+      p_ble_cb->suspended_rl_state |= BTM_BLE_RL_EXT_ADV;
+      btm_ble_multi_adv_enable_all(FALSE);
+    }
 #endif
 
     return TRUE;
@@ -645,8 +648,13 @@ void btm_ble_resume_resolving_list_activity(void)
     if  (p_ble_cb->suspended_rl_state & BTM_BLE_RL_INIT)
         btm_ble_resume_bg_conn();
 
-    if  (p_ble_cb->suspended_rl_state & BTM_BLE_RL_EXT_ADV)
-        btm_ble_multi_adv_enable_all(TRUE);
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
+    if (controller_get_interface()->supports_ble_extended_advertisements())
+    {
+      if  (p_ble_cb->suspended_rl_state & BTM_BLE_RL_EXT_ADV)
+          btm_ble_multi_adv_enable_all(TRUE);
+    }
+#endif
 
     p_ble_cb->suspended_rl_state = BTM_BLE_RL_IDLE;
 }

@@ -182,7 +182,6 @@ static void event_shut_down_stack(UNUSED_ATTR void *context) {
   hack_future = future_new();
   btif_thread_post(event_signal_stack_down, NULL);
   future_await(hack_future);
-  clean_vnd_logger();
 }
 
 static void ensure_stack_is_not_running(void) {
@@ -211,7 +210,8 @@ static void event_clean_up_stack(void *context) {
   module_management_stop();
   LOG_INFO(LOG_TAG, "%s finished", __func__);
 
-cleanup:;
+cleanup:
+  clean_vnd_logger();
   semaphore_t *semaphore = (semaphore_t *)context;
   if (semaphore)
     semaphore_post(semaphore);
