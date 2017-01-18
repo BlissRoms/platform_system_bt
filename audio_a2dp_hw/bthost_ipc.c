@@ -798,7 +798,7 @@ void a2dp_stream_common_init(struct a2dp_stream_common *common)
 int start_audio_datapath(struct a2dp_stream_common *common)
 {
     INFO("state %d", common->state);
-
+    int ret = 0;
     #ifdef BT_AUDIO_SYSTRACE_LOG
     char trace_buf[512];
     #endif
@@ -827,11 +827,13 @@ int start_audio_datapath(struct a2dp_stream_common *common)
     if (a2dp_status < 0)
     {
         ERROR("%s Audiopath start failed (status %d)", __func__, a2dp_status);
+        ret = -1;
         goto error;
     }
     else if (a2dp_status == A2DP_CTRL_ACK_INCALL_FAILURE)
     {
         ERROR("%s Audiopath start failed - in call, move to suspended", __func__);
+        ret = a2dp_status;
         goto error;
     }
     if (!bt_split_a2dp_enabled)
@@ -857,7 +859,10 @@ int start_audio_datapath(struct a2dp_stream_common *common)
     return 0;
 error:
     common->state = oldstate;
-    return -1;
+    if (bt_split_a2dp_enabled)
+        return ret;
+    else
+        return -1;
 }
 
 int stop_audio_datapath(struct a2dp_stream_common *common)
@@ -953,7 +958,7 @@ int audio_open_ctrl_path()
 
 int audio_start_stream()
 {
-    int i;
+    int i,status;
     INFO("%s: state = %s",__func__,dump_a2dp_hal_state(audio_stream.state));
 
     if (audio_stream.state == AUDIO_A2DP_STATE_SUSPENDED)
@@ -976,9 +981,15 @@ int audio_start_stream()
     }
     for (i = 0; i < STREAM_START_MAX_RETRY_COUNT; i++)
     {
-        if (start_audio_datapath(&audio_stream) == 0)
+        status = start_audio_datapath(&audio_stream);
+        if (status == A2DP_CTRL_ACK_SUCCESS)
         {
             INFO("a2dp stream started successfully");
+            break;
+        }
+        else if (status == A2DP_CTRL_ACK_INCALL_FAILURE)
+        {
+            INFO("a2dp stream start failed: call in progress");
             break;
         }
         if (audio_stream.ctrl_fd == AUDIO_SKT_DISCONNECTED)
