@@ -236,7 +236,6 @@ static future_t *start_up(void) {
 
 #if (BLE_INCLUDED == TRUE)
   ret = property_get("ble.ae_supported", value, NULL);
-  LOG_INFO(LOG_TAG, "%s QCOM22:value :%s , ret =%d", __func__, value, ret);
   if (ret) {
     adv_ext_enabled = (strcmp(value, "true") ==0) ? true : false;
     LOG_INFO(LOG_TAG, "%s BLE Adv Extensions enabled:%d", __func__, adv_ext_enabled);
