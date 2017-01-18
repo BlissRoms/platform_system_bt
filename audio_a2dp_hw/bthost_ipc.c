@@ -60,7 +60,10 @@ static int bt_split_a2dp_enabled = 0;
 /*****************************************************************************
 **  Constants & Macros
 ******************************************************************************/
-#define STREAM_START_MAX_RETRY_COUNT 80 /* Retry for 8sec to address IOT issue*/
+/* Below two values adds up to 8 sec retry to address IOT issues*/
+#define STREAM_START_MAX_RETRY_COUNT 10
+#define STREAM_START_MAX_RETRY_LOOPER 8
+
 #define CTRL_CHAN_RETRY_COUNT 3
 #define USEC_PER_SEC 1000000L
 #define SOCK_SEND_TIMEOUT_MS 2000  /* Timeout for sending */
@@ -958,7 +961,7 @@ int audio_open_ctrl_path()
 
 int audio_start_stream()
 {
-    int i,status;
+    int i, status, j;
     INFO("%s: state = %s",__func__,dump_a2dp_hal_state(audio_stream.state));
 
     if (audio_stream.state == AUDIO_A2DP_STATE_SUSPENDED)
@@ -979,30 +982,43 @@ int audio_start_stream()
         }
         /* Try to start stream to recover from ctrl skt disconnect*/
     }
-    for (i = 0; i < STREAM_START_MAX_RETRY_COUNT; i++)
-    {
-        status = start_audio_datapath(&audio_stream);
-        if (status == A2DP_CTRL_ACK_SUCCESS)
+
+    for (j = 0; j <STREAM_START_MAX_RETRY_LOOPER; j++) {
+        for (i = 0; i < STREAM_START_MAX_RETRY_COUNT; i++)
         {
-            INFO("a2dp stream started successfully");
-            break;
+            status = start_audio_datapath(&audio_stream);
+            if (status == A2DP_CTRL_ACK_SUCCESS)
+            {
+                INFO("a2dp stream started successfully");
+                goto end;
+            }
+            else if (status == A2DP_CTRL_ACK_INCALL_FAILURE)
+            {
+                INFO("a2dp stream start failed: call in progress");
+                goto end;
+            }
+            if (audio_stream.ctrl_fd == AUDIO_SKT_DISCONNECTED)
+            {
+                INFO("control path is disconnected");
+                goto end;
+            }
+            INFO("%s: a2dp stream not started,wait 100mse & retry", __func__);
+            usleep(100000);
         }
-        else if (status == A2DP_CTRL_ACK_INCALL_FAILURE)
-        {
-            INFO("a2dp stream start failed: call in progress");
-            break;
+        INFO("%s: Check if valid connection is still up or not", __func__);
+
+        // For every 1 sec check if a2dp is still up, to avoid
+        // blocking the audio thread forever if a2dp connection is closed
+        // for some reason
+        if (check_a2dp_open_ready (&audio_stream) < 0) {
+            ERROR("%s: No valid a2dp connection\n", __func__);
+            return -1;
         }
-        if (audio_stream.ctrl_fd == AUDIO_SKT_DISCONNECTED)
-        {
-            INFO("control path is disconnected");
-            break;
-        }
-        INFO("%s: a2dp stream not started,wait 100mse & retry", __func__);
-        usleep(100000);
     }
+end:
     if (audio_stream.state != AUDIO_A2DP_STATE_STARTED)
     {
-        ERROR("Failed to start a2dp stream");
+        ERROR("%s: Failed to start a2dp stream", __func__);
         return -1;
     }
     return 0;
