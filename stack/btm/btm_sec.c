@@ -4148,12 +4148,10 @@ void btm_sec_auth_complete (UINT16 handle, UINT8 status)
             {
                 BTM_TRACE_DEBUG ("link encrypted afer dedic bonding can use SMP_BR_CHNL");
 
-                if (btm_sec_is_master(p_dev_rec))
-                {
-                    // Encryption is required to start SM over BR/EDR
-                    // indicate that this is encryption after authentication
-                    BTM_SetEncryption(p_dev_rec->bd_addr, BT_TRANSPORT_BR_EDR, NULL, NULL, 0);
-                }
+                // Encryption is required to start SM over BR/EDR
+                // from DD bonding initiator.
+                // indicate that this is encryption after authentication
+                BTM_SetEncryption(p_dev_rec->bd_addr, BT_TRANSPORT_BR_EDR, NULL, NULL, 0);
             }
             l2cu_start_post_bond_timer (p_dev_rec->hci_handle);
         }
