@@ -3623,10 +3623,13 @@ void btif_av_get_peer_addr(bt_bdaddr_t *peer_bda)
         if ((state == BTIF_AV_STATE_OPENED) ||
             (state == BTIF_AV_STATE_STARTED))
         {
-            BTIF_TRACE_DEBUG("btif_av_get_peer_addr: %u",
-                    btif_av_cb[i].peer_bda);
+            BTIF_TRACE_DEBUG("btif_av_get_peer_addr: %u state: %d ",
+                    btif_av_cb[i].peer_bda, state);
+            memset(peer_bda, 0, sizeof(bt_bdaddr_t));
             memcpy(peer_bda, &btif_av_cb[i].peer_bda,
                                     sizeof(bt_bdaddr_t));
+            if (state == BTIF_AV_STATE_STARTED)
+                break;
         }
     }
 }
