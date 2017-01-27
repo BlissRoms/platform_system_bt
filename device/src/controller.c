@@ -34,7 +34,8 @@
 #include "osi/include/log.h"
 #include "utils/include/bt_utils.h"
 
-const bt_event_mask_t BLE_EVENT_MASK = { "\x00\x00\x00\x00\x00\x07\xfe\x7f" };
+const bt_event_mask_t BLE_EVENT_MASK = { "\x00\x00\x00\x00\x00\x0b\xfe\x7f" };
+const bt_event_mask_t BLE_EVENT_MASK_ALE_DISABLED = { "\x00\x00\x00\x00\x00\x08\x0e\x7f" };
 
 #if (BLE_INCLUDED)
 const bt_event_mask_t CLASSIC_EVENT_MASK = { HCI_DUMO_EVENT_MASK_EXT };
@@ -235,11 +236,14 @@ static future_t *start_up(void) {
 #endif
 
 #if (BLE_INCLUDED == TRUE)
+
+#if (defined BLE_EXTENDED_ADV_SUPPORT && (BLE_EXTENDED_ADV_SUPPORT == TRUE))
   ret = property_get("ble.ae_supported", value, NULL);
   if (ret) {
     adv_ext_enabled = (strcmp(value, "true") ==0) ? true : false;
     LOG_INFO(LOG_TAG, "%s BLE Adv Extensions enabled:%d", __func__, adv_ext_enabled);
   }
+#endif
 
   ble_supported = last_features_classic_page_index >= 1 && HCI_LE_HOST_SUPPORTED(features_classic[1].as_array);
   if (ble_supported) {
@@ -296,7 +300,11 @@ static future_t *start_up(void) {
     }
 
     // Set the ble event mask next
-    response = AWAIT_COMMAND(packet_factory->make_ble_set_event_mask(&BLE_EVENT_MASK));
+    if (adv_ext_enabled) {
+        response = AWAIT_COMMAND(packet_factory->make_ble_set_event_mask(&BLE_EVENT_MASK));
+    } else {
+        response = AWAIT_COMMAND(packet_factory->make_ble_set_event_mask(&BLE_EVENT_MASK_ALE_DISABLED));
+    }
     packet_parser->parse_generic_command_complete(response);
   }
 #endif
