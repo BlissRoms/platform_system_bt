@@ -227,7 +227,8 @@ void bta_hh_add_device_to_list(tBTA_HH_DEV_CB *p_cb, UINT8 handle,
                                UINT8 app_id)
 {
 #if BTA_HH_DEBUG
-    APPL_TRACE_DEBUG("subclass = 0x%2x", sub_class);
+    APPL_TRACE_DEBUG("subclass = 0x%2x, maxlat = 0x%2x, minto = 0x%2x",
+                     sub_class, ssr_max_latency, ssr_min_tout);
 #endif
 
     p_cb->hid_handle = handle;
@@ -282,7 +283,7 @@ BOOLEAN bta_hh_tod_spt(tBTA_HH_DEV_CB *p_cb,UINT8 sub_class)
         }
     }
 #if BTA_HH_DEBUG
-            APPL_TRACE_EVENT("bta_hh_tod_spt sub_class:0x%x NOT supported", sub_class);
+    APPL_TRACE_ERROR("bta_hh_tod_spt sub_class:0x%x NOT supported", sub_class);
 #endif
     return FALSE;
 }
@@ -465,11 +466,15 @@ tBTA_HH_STATUS bta_hh_read_ssr_param(BD_ADDR bd_addr, UINT16 *p_max_ssr_lat, UIN
 
                 BTM_GetLinkSuperTout(p_cb->kdev[i].addr, &ssr_max_latency) ;
                 ssr_max_latency = BTA_HH_GET_DEF_SSR_MAX_LAT(ssr_max_latency);
+                APPL_TRACE_DEBUG("ssr_max_latency: 0x%2x", ssr_max_latency);
 
                 /* per 1.1 spec, if the newly calculated max latency is greater than
                 BTA_HH_SSR_MAX_LATENCY_DEF which is 500ms, use BTA_HH_SSR_MAX_LATENCY_DEF */
-                if (ssr_max_latency > BTA_HH_SSR_MAX_LATENCY_DEF)
+                if (ssr_max_latency > BTA_HH_SSR_MAX_LATENCY_DEF) {
                     ssr_max_latency = BTA_HH_SSR_MAX_LATENCY_DEF;
+                    APPL_TRACE_DEBUG("Updating ssr_max_latency to: 0x%2x",
+                        BTA_HH_SSR_MAX_LATENCY_DEF);
+                }
 
                 * p_max_ssr_lat  = ssr_max_latency;
             }
@@ -481,6 +486,8 @@ tBTA_HH_STATUS bta_hh_read_ssr_param(BD_ADDR bd_addr, UINT16 *p_max_ssr_lat, UIN
             else
                 * p_min_ssr_tout = p_cb->kdev[i].dscp_info.ssr_min_tout;
 
+            APPL_TRACE_DEBUG("max_lat: 0x%2x, min to: 0x%2x", * p_max_ssr_lat,
+                                * p_min_ssr_tout);
             status           = BTA_HH_OK;
 
             break;

@@ -495,6 +495,7 @@ void bta_hh_sdp_cmpl(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
             APPL_TRACE_DEBUG ("bta_hh_sdp_cmpl:SDP failed for  incoming conn :hndl %d",
                                 p_cb->incoming_hid_handle);
             HID_HostRemoveDev( p_cb->incoming_hid_handle);
+            GENERATE_VENDOR_LOGS();
         }
         conn_dat.status = status;
         (* bta_hh_cb.p_cback)(BTA_HH_OPEN_EVT, (tBTA_HH *)&conn_dat);
@@ -602,6 +603,7 @@ void bta_hh_open_cmpl_act(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
             /* HID connection is up, while SET_PROTO fail */
             conn.status = BTA_HH_ERR_PROTO;
             (* bta_hh_cb.p_cback)(BTA_HH_OPEN_EVT, (tBTA_HH *)&conn);
+            GENERATE_VENDOR_LOGS();
         }
         else
         {
@@ -846,6 +848,7 @@ void bta_hh_open_failure(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
                                     BTA_HH_ERR_AUTH_FAILED : BTA_HH_ERR;
     bdcpy(conn_dat.bda, p_cb->addr);
     HID_HostCloseDev(p_cb->hid_handle);
+    GENERATE_VENDOR_LOGS();
 
 #if BTA_HH_DEBUG
     APPL_TRACE_DEBUG("bta_hh_open_failure: hid_handle = %d", p_cb->hid_handle);
@@ -920,6 +923,7 @@ void bta_hh_close_act (tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
 
         /* Report OPEN fail event */
         (*bta_hh_cb.p_cback)(BTA_HH_OPEN_EVT, (tBTA_HH *)&conn_dat);
+        GENERATE_VENDOR_LOGS();
 
 #if BTA_HH_DEBUG
         bta_hh_trace_dev_db();
@@ -1190,7 +1194,7 @@ void bta_hh_write_dev_act(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
         }
         else if (p_data->api_sndcmd.param == BTA_HH_CTRL_SUSPEND)
         {
-			bta_sys_sco_close(BTA_ID_HH, p_cb->app_id, p_cb->addr);
+            bta_sys_sco_close(BTA_ID_HH, p_cb->app_id, p_cb->addr);
         }
         else if (p_data->api_sndcmd.param == BTA_HH_CTRL_EXIT_SUSPEND)
         {
