@@ -2752,6 +2752,9 @@ BOOLEAN btm_ble_update_inq_result(tINQ_DB_ENT *p_i, UINT8 addr_type, UINT16 evt_
     UINT16               periodic_adv_int;
     BD_ADDR              direct_bda;
     tBTM_BLE_INQ_DATA_CB  *p_le_inq_cb = &p_cur->inq_data;
+    UINT8 *p_cache;
+    UINT8 length = 0;
+    UINT16 adv_data_size = 0;
 
 
     BTM_TRACE_EVENT("btm_ble_update_inq_result evt_type= %d", evt_type);
@@ -2792,10 +2795,7 @@ BOOLEAN btm_ble_update_inq_result(tINQ_DB_ENT *p_i, UINT8 addr_type, UINT16 evt_
         }
         return FALSE;
     }
-    else if(extended && ((evt_type & BTM_BLE_EXT_ADV_EVT_DATA_MASK) == BTM_BLE_EXT_ADV_EVT_DATA_INCMPL_MASK))
-    {
-        to_report = FALSE;
-    }
+
     btm_ble_cache_adv_data(p_cur, data_len, p, evt_type, extended);
 
     if(!extended)
@@ -2837,6 +2837,29 @@ BOOLEAN btm_ble_update_inq_result(tINQ_DB_ENT *p_i, UINT8 addr_type, UINT16 evt_
         p_cur->ble_evt_type     = evt_type;
 
     p_i->inq_count = p_inq->inq_counter;   /* Mark entry for current inquiry */
+
+    if(extended && ((evt_type & BTM_BLE_EXT_ADV_EVT_DATA_MASK) == BTM_BLE_EXT_ADV_EVT_DATA_INCMPL_MASK))
+        return FALSE;
+
+    /* Perform length check of each adv data */
+    if (p_le_inq_cb->adv_len > 0 && p_le_inq_cb->adv_data_cache)
+    {
+        p_cache = &p_le_inq_cb->adv_data_cache[0];
+
+        STREAM_TO_UINT8(length, p_cache);
+        while (length && ((adv_data_size + length + 1) <= p_le_inq_cb->adv_len))
+        {
+            adv_data_size += length+1;
+            p_cache += length;
+            if (adv_data_size < p_le_inq_cb->adv_len)
+            {
+                /* skip the length of data */
+                STREAM_TO_UINT8(length, p_cache);
+            }
+        }
+
+        p_le_inq_cb->adv_len = adv_data_size;
+    }
 
     if (p_le_inq_cb->adv_len != 0)
     {
