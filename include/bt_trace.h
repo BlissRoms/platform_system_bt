@@ -223,6 +223,7 @@ extern void BTA_setStackLog( const char* log_layer, int log_level);
 #define BT_ERROR_TRACE(l,...)                    LogMsg(TRACE_CTRL_GENERAL | (l) | TRACE_ORG_STACK | TRACE_TYPE_ERROR, ##__VA_ARGS__)
 
 #define VND_TRACE(l,t,...)                        vnd_LogMsg((TRACE_CTRL_GENERAL | (l) | TRACE_ORG_STACK | (t)), ##__VA_ARGS__)
+#define GENERATE_VENDOR_LOGS() vnd_GenerateLogs()
 
 /* Define tracing for the HCI unit
 */
@@ -424,3 +425,4 @@ extern UINT8 appl_trace_level;
 
 void LogMsg (UINT32 trace_set_mask, const char *fmt_str, ...);
 void vnd_LogMsg (UINT32 trace_set_mask, const char *fmt_str, ...);
+void vnd_GenerateLogs();

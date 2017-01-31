@@ -312,6 +312,7 @@ void PORT_ParNegInd (tRFC_MCB *p_mcb, UINT8 dlci, UINT16 mtu, UINT8 cl, UINT8 k)
             problem, they don't disconnect if we send DM */
             rfc_check_mcb_active( p_mcb );
             RFCOMM_TRACE_EVENT( "PORT_ParNegInd: port not found" );
+            GENERATE_VENDOR_LOGS();
             return;
         }
         p_mcb->port_inx[dlci] = p_port->inx;

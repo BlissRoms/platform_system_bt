@@ -2179,6 +2179,7 @@ UINT8 btm_proc_smp_cback(tSMP_EVT event, BD_ADDR bd_addr, tSMP_EVT_DATA *p_data)
                     {
                         BTM_TRACE_DEBUG ("Pairing failed - prepare to remove ACL");
                         l2cu_start_post_bond_timer(p_dev_rec->ble_hci_handle);
+                        GENERATE_VENDOR_LOGS();
                     }
 #endif
 

@@ -107,6 +107,12 @@ static void bta_ag_cback_open(tBTA_AG_SCB *p_scb, tBTA_AG_DATA *p_data, tBTA_AG_
         bdcpy(open.bd_addr, p_scb->peer_addr);
     }
 
+    // if failure, dump logs
+    if (status != BTA_AG_SUCCESS) {
+        APPL_TRACE_WARNING("%s: there is failure in SDP/RFCOMM connection", __func__);
+        GENERATE_VND_LOGS();
+    }
+
     (*bta_ag_cb.p_cback)(BTA_AG_OPEN_EVT, (tBTA_AG *) &open);
 }
 

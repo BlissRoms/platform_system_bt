@@ -92,6 +92,12 @@ static void bredrcleanup(void)
                           NULL, 0, NULL);
 }
 
+static void capture_vnd_logs(void)
+{
+    LOG_INFO(LOG_TAG,"capture_vnd_logs");
+    GENERATE_VND_LOGS();
+}
+
 static void cleanup(void)
 {
     LOG_INFO(LOG_TAG,"cleanup");
@@ -103,6 +109,7 @@ static const btvendor_interface_t btvendorInterface = {
     init,
     ssrcleanup,
     bredrcleanup,
+    capture_vnd_logs,
     cleanup,
 };
 

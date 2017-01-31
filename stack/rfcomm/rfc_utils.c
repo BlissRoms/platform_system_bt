@@ -325,6 +325,7 @@ void rfcomm_port_timer_timeout(void *data)
     tPORT *p_port = (tPORT *)data;
 
     rfc_port_sm_execute(p_port, RFC_EVENT_TIMEOUT, NULL);
+    GENERATE_VENDOR_LOGS();
 }
 
 void rfcomm_mcb_timer_timeout(void *data)
@@ -332,6 +333,8 @@ void rfcomm_mcb_timer_timeout(void *data)
     tRFC_MCB *p_mcb = (tRFC_MCB *)data;
 
     rfc_mx_sm_execute(p_mcb, RFC_EVENT_TIMEOUT, NULL);
+
+    GENERATE_VENDOR_LOGS();
 }
 
 /*******************************************************************************

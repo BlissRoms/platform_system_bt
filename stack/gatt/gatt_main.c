@@ -434,6 +434,8 @@ static void gatt_le_connect_cback (UINT16 chan, BD_ADDR bd_addr, BOOLEAN connect
                        (bd_addr[0]<<24)+(bd_addr[1]<<16)+(bd_addr[2]<<8)+bd_addr[3],
                        (bd_addr[4]<<8)+bd_addr[5], (connected) ? "connected" : "disconnected");
 
+    if (reason == GATT_CONN_TIMEOUT || reason == GATT_CONN_LMP_TIMEOUT)
+        GENERATE_VENDOR_LOGS();
     if ((p_srv_chg_clt = gatt_is_bda_in_the_srv_chg_clt_list(bd_addr)) != NULL)
     {
         check_srv_chg = TRUE;

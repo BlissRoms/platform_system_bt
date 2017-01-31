@@ -765,10 +765,15 @@ void btm_acl_encrypt_change (UINT16 handle, UINT8 status, UINT8 encr_enable)
                       handle, status, encr_enable);
     xx = btm_handle_to_acl_index(handle);
     /* don't assume that we can never get a bad hci_handle */
-    if (xx < MAX_L2CAP_LINKS)
+    if (xx < MAX_L2CAP_LINKS) {
         p = &btm_cb.acl_db[xx];
-    else
+    } else {
+        GENERATE_VENDOR_LOGS();
         return;
+    }
+
+    if (status != HCI_SUCCESS)
+        GENERATE_VENDOR_LOGS();
 
     /* Process Role Switch if active */
     if (p->switch_role_state == BTM_ACL_SWKEY_STATE_ENCRYPTION_OFF)
@@ -1576,6 +1581,8 @@ void btm_acl_role_changed (UINT8 hci_status, BD_ADDR bd_addr, UINT8 new_role)
         /* it could be a failure */
         if (hci_status != HCI_SUCCESS)
             btm_acl_report_role_change(hci_status, bd_addr);
+
+        GENERATE_VENDOR_LOGS();
         return;
     }
 
@@ -1598,6 +1605,7 @@ void btm_acl_role_changed (UINT8 hci_status, BD_ADDR bd_addr, UINT8 new_role)
     else
     {
         /* so the BTM_BL_ROLE_CHG_EVT uses the old role */
+        GENERATE_VENDOR_LOGS();
         new_role = p->link_role;
     }
 
@@ -2694,6 +2702,7 @@ BOOLEAN  btm_acl_notif_conn_collision (BD_ADDR bda)
 {
     tBTM_BL_EVENT_DATA  evt_data;
 
+    GENERATE_VENDOR_LOGS();
     /* Report possible collision to the upper layer. */
     if (btm_cb.p_bl_changed_cb)
     {

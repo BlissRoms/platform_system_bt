@@ -4117,8 +4117,10 @@ void btm_sec_auth_complete (UINT16 handle, UINT8 status)
     /* User probably Disabled the keyboard while it was asleap.  Let her try */
     if (btm_cb.api.p_auth_complete_callback)
     {
-        /* report the suthentication status */
-        if ((old_state != BTM_PAIR_STATE_IDLE) || (status != HCI_SUCCESS))
+        /* report the authentication status */
+        /* don't post auth status for collision, key missing cases as stack may retry for security */
+        if ((old_state != BTM_PAIR_STATE_IDLE) || ((status != HCI_SUCCESS) &&
+            (status != HCI_ERR_KEY_MISSING)))
             (*btm_cb.api.p_auth_complete_callback) (p_dev_rec->bd_addr,
                                                     p_dev_rec->dev_class,
                                                     p_dev_rec->sec_bd_name, status);
@@ -4148,12 +4150,10 @@ void btm_sec_auth_complete (UINT16 handle, UINT8 status)
             {
                 BTM_TRACE_DEBUG ("link encrypted afer dedic bonding can use SMP_BR_CHNL");
 
-                if (btm_sec_is_master(p_dev_rec))
-                {
-                    // Encryption is required to start SM over BR/EDR
-                    // indicate that this is encryption after authentication
-                    BTM_SetEncryption(p_dev_rec->bd_addr, BT_TRANSPORT_BR_EDR, NULL, NULL, 0);
-                }
+                // Encryption is required to start SM over BR/EDR
+                // from DD bonding initiator.
+                // indicate that this is encryption after authentication
+                BTM_SetEncryption(p_dev_rec->bd_addr, BT_TRANSPORT_BR_EDR, NULL, NULL, 0);
             }
             l2cu_start_post_bond_timer (p_dev_rec->hci_handle);
         }
@@ -4193,6 +4193,11 @@ void btm_sec_auth_complete (UINT16 handle, UINT8 status)
                 return;
             }
         }
+
+        if (btm_cb.api.p_auth_complete_callback && (status == HCI_ERR_KEY_MISSING))
+            (*btm_cb.api.p_auth_complete_callback) (p_dev_rec->bd_addr,
+                                                    p_dev_rec->dev_class,
+                                                    p_dev_rec->sec_bd_name, status);
 
         btm_sec_dev_rec_cback_event (p_dev_rec, BTM_ERR_PROCESSING, FALSE);
 
@@ -4297,6 +4302,7 @@ void btm_sec_encrypt_change (UINT16 handle, UINT8 status, UINT8 encr_enable)
         {
             p_dev_rec->sec_flags &= ~ (BTM_SEC_LE_LINK_KEY_KNOWN);
             p_dev_rec->ble.key_type = BTM_LE_KEY_NONE;
+            GENERATE_VENDOR_LOGS();
         }
         else if (status == HCI_ERR_KEY_MISSING)
         {
@@ -4356,6 +4362,7 @@ void btm_sec_encrypt_change (UINT16 handle, UINT8 status, UINT8 encr_enable)
 
                 BTM_TRACE_DEBUG("updated link key type to %d", p_dev_rec->link_key_type);
                 btm_send_link_key_notif(p_dev_rec);
+                GENERATE_VENDOR_LOGS();
             }
         }
     }
