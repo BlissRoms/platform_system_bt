@@ -38,7 +38,8 @@
 #include "bt_common.h"
 #include "osi/include/allocator.h"
 #include <cutils/properties.h>
-
+#include "device/include/interop.h"
+#include "btif_storage.h"
 /*****************************************************************************
 **  Constants & Macros
 ******************************************************************************/
@@ -1221,9 +1222,31 @@ static BOOLEAN btif_av_state_opened_handler(btif_sm_event_t event, void *p_data,
                         }
                         else
                         {
-                            BTIF_TRACE_DEBUG("%s: trigger suspend as remote initiated!!",
-                                __FUNCTION__);
-                            btif_dispatch_sm_event(BTIF_AV_SUSPEND_STREAM_REQ_EVT, NULL, 0);
+                            bt_property_t prop_name;
+                            bt_bdname_t bdname;
+                            BOOLEAN remote_name = FALSE;
+                            BTIF_STORAGE_FILL_PROPERTY(&prop_name, BT_PROPERTY_BDNAME,
+                                                       sizeof(bt_bdname_t), &bdname);
+                            if (btif_storage_get_remote_device_property(&btif_av_cb[index].peer_bda, &prop_name)
+                                                                        == BT_STATUS_SUCCESS)
+                            {
+                                remote_name = TRUE;
+                            }
+                            if ((bt_split_a2dp_enabled &&
+                                (!interop_match_addr(INTEROP_REMOTE_AVDTP_START, &btif_av_cb[index].peer_bda) ||
+                                (!remote_name || (remote_name &&
+                                 !interop_match_name(INTEROP_REMOTE_AVDTP_START, (const char *)bdname.name))))) ||
+                                !bt_split_a2dp_enabled)
+                            {
+                                BTIF_TRACE_DEBUG("%s: trigger suspend as remote initiated!!",
+                                    __FUNCTION__);
+                                btif_dispatch_sm_event(BTIF_AV_SUSPEND_STREAM_REQ_EVT, NULL, 0);
+                            }
+                            else
+                            {
+                                BTIF_TRACE_DEBUG("%s: honor remote started for BL device",__FUNCTION__);
+                                btif_a2dp_on_remote_started();
+                            }
                         }
                     }
                 }
