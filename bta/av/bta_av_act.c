@@ -46,6 +46,7 @@
 #include "osi/include/osi.h"
 #include "osi/include/properties.h"
 #include "utl.h"
+#include "device/include/interop.h"
 
 #if ( defined BTA_AR_INCLUDED ) && (BTA_AR_INCLUDED == TRUE)
 #include "bta_ar_api.h"
@@ -1938,6 +1939,22 @@ tBTA_AV_FEAT bta_av_check_peer_features (UINT16 service_uuid)
             /* get profile version (if failure, version parameter is not updated) */
             SDP_FindProfileVersionInRec(p_rec, UUID_SERVCLASS_AV_REMOTE_CONTROL,
                                                                 &peer_rc_version);
+
+            if (interop_match_addr(INTEROP_ADV_AVRCP_VER_1_3,
+                    (const bt_bdaddr_t*) p_rec->remote_bd_addr))
+            {
+                peer_rc_version = AVRC_REV_1_3;
+                APPL_TRACE_DEBUG("changing peer_rc_version as part of blacklisting to 0x%x",
+                        peer_rc_version);
+            }
+            else if (interop_match_addr(INTEROP_STORE_REMOTE_AVRCP_VERSION_1_4,
+                    (const bt_bdaddr_t*) p_rec->remote_bd_addr))
+            {
+                peer_rc_version = AVRC_REV_1_4;
+                APPL_TRACE_DEBUG("changing peer_rc_version as part of blacklisting to 0x%x",
+                        peer_rc_version);
+            }
+
             APPL_TRACE_DEBUG("peer_rc_version 0x%x", peer_rc_version);
 
             if (peer_rc_version >= AVRC_REV_1_3)
