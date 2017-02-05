@@ -1051,10 +1051,12 @@ void bta_av_co_audio_setconfig(tBTA_AV_HNDL hndl, tBTA_AV_CODEC codec_type,
                 APPL_TRACE_DEBUG("%s codecId = %d", __func__, codecId);
                 APPL_TRACE_DEBUG("%s vendorId = %x", __func__, vendorId);
 
-                if ((codec_type != A2D_NON_A2DP_MEDIA_CT) ||
-                    (codecId != A2D_APTX_CODEC_ID_BLUETOOTH) ||
-                    (vendorId != A2D_APTX_VENDOR_ID) ||
-                    memcmp(p_codec_info, bta_av_co_cb.codec_cfg_aptx.info, 5))
+                if ( (codec_type != A2D_NON_A2DP_MEDIA_CT) ||
+                    ( (codecId != A2D_APTX_CODEC_ID_BLUETOOTH) &&
+                    (codecId != A2D_APTX_HD_CODEC_ID_BLUETOOTH) )
+                    || ((vendorId != A2D_APTX_VENDOR_ID) && (vendorId != A2D_APTX_HD_VENDOR_ID)) ||
+                    (memcmp(p_codec_info, bta_av_co_cb.codec_cfg_aptx.info, 5) &&
+                     memcmp(p_codec_info, bta_av_co_cb.codec_cfg_aptx_hd.info, 5)) )
                 {
                     APPL_TRACE_DEBUG("%s recfg_needed", __func__);
                     recfg_needed = TRUE;
@@ -1081,6 +1083,16 @@ void bta_av_co_audio_setconfig(tBTA_AV_HNDL hndl, tBTA_AV_CODEC codec_type,
 #if defined(AAC_ENCODER_INCLUDED) && (AAC_ENCODER_INCLUDED == TRUE)
             case BTA_AV_CODEC_M24:
             {
+                if ((codec_type != BTA_AV_CODEC_M24) ||
+                        memcmp(p_codec_info, bta_av_co_cb.codec_cfg_aac.info, 5))
+                {
+                    recfg_needed = TRUE;
+                }
+                else if ((num_protect == 1) && (!bta_av_co_cb.cp.active))
+                {
+                    recfg_needed = TRUE;
+                }
+
                 APPL_TRACE_DEBUG("%s AAC", __func__);
                 bta_av_co_cb.codec_cfg_aac_setconfig.id = BTIF_AV_CODEC_M24;
                 memcpy(bta_av_co_cb.codec_cfg_aac_setconfig.info, p_codec_info, AVDT_CODEC_SIZE);
