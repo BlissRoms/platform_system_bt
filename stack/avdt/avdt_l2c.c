@@ -210,8 +210,9 @@ void avdt_l2c_connect_ind_cback(BD_ADDR bd_addr, UINT16 lcid, UINT16 psm, UINT8 
             p_tbl->id   = id;
             p_tbl->state = AVDT_AD_ST_SEC_ACP;
             p_tbl->cfg_flags = AVDT_L2C_CFG_CONN_ACP;
-
-            if (interop_match_addr(INTEROP_2MBPS_LINK_ONLY, (const bt_bdaddr_t *)&bd_addr)) {
+            bt_bdaddr_t remote_bdaddr;
+            bdcpy(remote_bdaddr.address, bd_addr);
+            if (interop_match_addr(INTEROP_2MBPS_LINK_ONLY, (const bt_bdaddr_t *)&remote_bdaddr)) {
                 // Disable 3DH packets for AVDT ACL to improve sensitivity on HS
                 tACL_CONN *p_acl_cb = btm_bda_to_acl(bd_addr, BT_TRANSPORT_BR_EDR);
                 /* Fix for below klockwork issue
@@ -342,8 +343,10 @@ void avdt_l2c_connect_cfm_cback(UINT16 lcid, UINT16 result)
                         p_tbl->state = AVDT_AD_ST_SEC_INT;
                         p_tbl->lcid = lcid;
                         p_tbl->cfg_flags = AVDT_L2C_CFG_CONN_INT;
+                        bt_bdaddr_t remote_address;
+                        bdcpy(remote_address.address, p_ccb->peer_addr);
 
-                        if (interop_match_addr(INTEROP_2MBPS_LINK_ONLY, (const bt_bdaddr_t *) &p_ccb->peer_addr)) {
+                        if (interop_match_addr(INTEROP_2MBPS_LINK_ONLY, (const bt_bdaddr_t *) &remote_address)) {
                             // Disable 3DH packets for AVDT ACL to improve sensitivity on HS
                             tACL_CONN *p_acl_cb = btm_bda_to_acl(p_ccb->peer_addr, BT_TRANSPORT_BR_EDR);
                             /* Fix for below klockwork issue

@@ -274,13 +274,16 @@ static void hidh_l2cif_connect_ind (BD_ADDR  bd_addr, UINT16 l2cap_cid, UINT16 p
 
     if (psm == HID_PSM_CONTROL)
     {
+        bt_bdaddr_t remote_bdaddr;
         p_hcon->conn_flags = 0;
         p_hcon->ctrl_cid   = l2cap_cid;
         p_hcon->ctrl_id    = l2cap_id;
         p_hcon->disc_reason = HID_L2CAP_CONN_FAIL;  /* In case disconnection occurs before security is completed, then set CLOSE_EVT reason code to 'connection failure' */
 
         p_hcon->conn_state = HID_CONN_STATE_SECURITY;
-        if (!interop_match_addr(INTEROP_DISABLE_AUTH_FOR_HID_POINTING, (bt_bdaddr_t*)p_dev->addr))
+        bdcpy(remote_bdaddr.address, p_dev->addr);
+
+        if (!interop_match_addr(INTEROP_DISABLE_AUTH_FOR_HID_POINTING, (bt_bdaddr_t *)&remote_bdaddr))
         {
             if(btm_sec_mx_access_request (p_dev->addr, HID_PSM_CONTROL,
                 FALSE, BTM_SEC_PROTO_HID,
@@ -461,11 +464,14 @@ static void hidh_l2cif_connect_cfm (UINT16 l2cap_cid, UINT16 result)
     /* receive Control Channel connect confirmation */
     if (l2cap_cid == p_hcon->ctrl_cid)
     {
+        bt_bdaddr_t remote_address;
+
         /* check security requirement */
         p_hcon->conn_state = HID_CONN_STATE_SECURITY;
         p_hcon->disc_reason = HID_L2CAP_CONN_FAIL;  /* In case disconnection occurs before security is completed, then set CLOSE_EVT reason code to "connection failure" */
+        bdcpy(remote_address.address, p_dev->addr);
 
-        if (!interop_match_addr(INTEROP_DISABLE_AUTH_FOR_HID_POINTING, (bt_bdaddr_t *)p_dev->addr))
+        if (!interop_match_addr(INTEROP_DISABLE_AUTH_FOR_HID_POINTING, (bt_bdaddr_t *)&remote_address))
         {
             btm_sec_mx_access_request (p_dev->addr, HID_PSM_CONTROL,
                 TRUE, BTM_SEC_PROTO_HID,

@@ -529,10 +529,12 @@ static void bta_dm_pm_cback(tBTA_SYS_CONN_STATUS status, UINT8 id, UINT8 app_id,
             tBTA_DM_PEER_DEVICE *p_rem_dev = NULL;
             if (BTM_ReadRemoteVersion(peer_addr, &lmp_version,
                 &manufacturer, &lmp_sub_version) == BTM_SUCCESS) {
+                bt_bdaddr_t remote_bdaddr;
+                bdcpy(remote_bdaddr.address, peer_addr);
                 p_rem_dev = bta_dm_find_peer_device(peer_addr);
                 /* Disable sniff policy on the HID link since SCO is Up on Slave Link */
                 if ((p_rem_dev) && (interop_match_addr(
-                    INTEROP_DISABLE_SNIFF_DURING_SCO, (const bt_bdaddr_t *)peer_addr) ||
+                    INTEROP_DISABLE_SNIFF_DURING_SCO, (const bt_bdaddr_t *)&remote_bdaddr) ||
                     interop_match_manufacturer(INTEROP_DISABLE_SNIFF_DURING_SCO, manufacturer)))
                 {
                     char buf[18];
@@ -1285,14 +1287,16 @@ static void bta_dm_pm_hid_check(BOOLEAN bScoActive)
             UINT8 lmp_version = 0;
             tBTA_DM_PEER_DEVICE *p_rem_dev = NULL;
             UINT8 *p = BTM_ReadLocalFeatures();
+            bt_bdaddr_t remote_address;
             bdcpy(peer_bdaddr, bta_dm_conn_srvcs.conn_srvc[j].peer_bdaddr);
+            bdcpy(remote_address.address, bta_dm_conn_srvcs.conn_srvc[j].peer_bdaddr);
 
             if (BTM_ReadRemoteVersion(peer_bdaddr, &lmp_version,
                 &manufacturer, &lmp_sub_version) == BTM_SUCCESS) {
                 p_rem_dev = bta_dm_find_peer_device(peer_bdaddr);
                 /* Disable/Enable sniff policy on the HID link if SCO Up/Down*/
                 if ((p_rem_dev) && (interop_match_addr(
-                    INTEROP_DISABLE_SNIFF_DURING_SCO, (const bt_bdaddr_t *)peer_bdaddr) ||
+                    INTEROP_DISABLE_SNIFF_DURING_SCO, (const bt_bdaddr_t *)&remote_address) ||
                     interop_match_manufacturer(INTEROP_DISABLE_SNIFF_DURING_SCO, manufacturer)))
                 {
                     char buf[18];
