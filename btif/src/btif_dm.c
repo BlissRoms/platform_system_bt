@@ -1385,8 +1385,9 @@ static void btif_dm_auth_cmpl_evt (tBTA_DM_AUTH_CMPL *p_auth_cmpl)
         switch(p_auth_cmpl->fail_reason)
         {
             case HCI_ERR_PAGE_TIMEOUT:
-                if (interop_match_addr(INTEROP_AUTO_RETRY_PAIRING, (bt_bdaddr_t *)&bd_addr)
-                    && pairing_cb.timeout_retries)
+                if ((pairing_cb.timeout_retries == NUM_TIMEOUT_RETRIES) ||
+                   (interop_match_addr(INTEROP_AUTO_RETRY_PAIRING, (bt_bdaddr_t *)&bd_addr)
+                    && pairing_cb.timeout_retries))
                 {
                     BTIF_TRACE_WARNING("%s() - Pairing timeout; retrying (%d) ...", __FUNCTION__, pairing_cb.timeout_retries);
                     --pairing_cb.timeout_retries;
