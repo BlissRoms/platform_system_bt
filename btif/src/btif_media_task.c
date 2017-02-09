@@ -529,6 +529,7 @@ BOOLEAN bta_av_co_audio_get_codec_config(UINT8 *p_config, UINT16 *p_minmtu, UINT
 extern BOOLEAN bt_split_a2dp_enabled;
 extern int btif_max_av_clients;
 static uint8_t multicast_query = FALSE;
+extern BOOLEAN reconfig_a2dp;
 /*****************************************************************************
  **  Misc helper functions
  *****************************************************************************/
@@ -729,14 +730,23 @@ static void btif_recv_ctrl_data(void)
     {
         case A2DP_CTRL_CMD_CHECK_READY:
 
-            if (media_task_running == MEDIA_TASK_STATE_SHUTTING_DOWN)
+            if (!bt_split_a2dp_enabled && media_task_running == MEDIA_TASK_STATE_SHUTTING_DOWN)
             {
                 APPL_TRACE_WARNING("%s: A2DP command %s while media task shutting down",
                                    __func__, dump_a2dp_ctrl_event(cmd));
                 a2dp_cmd_acknowledge(A2DP_CTRL_ACK_FAILURE);
                 return;
             }
-
+            if (bt_split_a2dp_enabled && !btif_hf_is_call_idle())
+            {
+                a2dp_cmd_acknowledge(A2DP_CTRL_ACK_INCALL_FAILURE);
+                return;
+            }
+            if (bt_split_a2dp_enabled && (btif_av_is_under_handoff() || reconfig_a2dp))
+            {
+                a2dp_cmd_acknowledge(A2DP_CTRL_ACK_SUCCESS);
+                return;
+            }
             /* check whether av is ready to setup a2dp datapath */
             if ((btif_av_stream_ready() == TRUE) || (btif_av_stream_started_ready() == TRUE))
             {
