@@ -137,6 +137,8 @@ static const interop_addr_entry_t interop_addr_database[] = {
   {{{0xAC, 0x7A, 0x4D,      0,0,0}}, 3, INTEROP_DISABLE_AAC_CODEC},
   //Maruthi Brezzai
   {{{0x28, 0xa1, 0x83,      0,0,0}}, 3, INTEROP_DISABLE_AAC_CODEC},
+  // Parrot Zik2.0
+  {{{0xA0, 0x14, 0x3D,      0,0,0}}, 3, INTEROP_DISABLE_AAC_CODEC},
 };
 
 typedef struct {
