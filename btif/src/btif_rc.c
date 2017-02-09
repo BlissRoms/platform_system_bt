@@ -1159,8 +1159,17 @@ void handle_rc_passthrough_cmd ( tBTA_AV_REMOTE_CMD *p_remote_cmd)
     }
 
     if (key_map[i].name == NULL)
+    {
         BTIF_TRACE_ERROR("%s AVRCP: unknown button 0x%02X %s", __FUNCTION__,
                         p_remote_cmd->rc_id, status);
+    }
+    else
+    {
+        BTIF_TRACE_ERROR("%s AVRCP:send passthrough cmd = %s to BT Apps ",
+                        __FUNCTION__, key_map[i].name);
+        bdcpy(remote_address.address, btif_rc_cb[index].rc_addr);
+        HAL_CBACK(bt_rc_callbacks, passthrough_cmd_cb, p_remote_cmd->rc_id, pressed, &remote_address);
+    }
 }
 
 /***************************************************************************
