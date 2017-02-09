@@ -1193,6 +1193,7 @@ void bta_av_cleanup(tBTA_AV_SCB *p_scb, tBTA_AV_DATA *p_data)
     /* if de-registering shut everything down */
     msg.hdr.layer_specific  = p_scb->hndl;
     p_scb->started  = FALSE;
+    p_scb->suspend_local_sent = FALSE;
     p_scb->cong = FALSE;
     p_scb->role = role;
     p_scb->cur_psc_mask = 0;
@@ -1522,7 +1523,7 @@ void bta_av_str_opened (tBTA_AV_SCB *p_scb, tBTA_AV_DATA *p_data)
     /* set the congestion flag, so AV would not send media packets by accident */
     p_scb->cong = TRUE;
     p_scb->offload_start_pending = FALSE;
-
+    p_scb->suspend_local_sent = FALSE;
 
     p_scb->stream_mtu = p_data->str_msg.msg.open_ind.peer_mtu - AVDT_MEDIA_HDR_SIZE;
     mtu = bta_av_chk_mtu(p_scb, p_scb->stream_mtu);
@@ -1692,6 +1693,7 @@ void bta_av_do_close (tBTA_AV_SCB *p_scb, tBTA_AV_DATA *p_data)
 
     /* close stream */
     p_scb->started = FALSE;
+    p_scb->suspend_local_sent = FALSE;
 
     /* drop the buffers queued in L2CAP */
     L2CA_FlushChannel (p_scb->l2c_cid, L2CAP_FLUSH_CHANS_ALL);
@@ -2299,16 +2301,18 @@ void bta_av_str_stopped (tBTA_AV_SCB *p_scb, tBTA_AV_DATA *p_data)
 
     if (p_data && p_data->api_stop.suspend)
     {
-        APPL_TRACE_DEBUG("suspending: %d, sup:%d", start, p_scb->suspend_sup);
-        if ((start)  && (p_scb->suspend_sup))
+        APPL_TRACE_DEBUG("suspending: %d, sup:%d, suspend_local_sent = %d",
+                           start, p_scb->suspend_sup,p_scb->suspend_local_sent);
+        if ((start)  && (p_scb->suspend_sup) && (!p_scb->suspend_local_sent))
         {
+            p_scb->suspend_local_sent = TRUE;
             sus_evt = FALSE;
             p_scb->l2c_bufs = 0;
             AVDT_SuspendReq(&p_scb->avdt_handle, 1);
         }
 
         /* send SUSPEND_EVT event only if not in reconfiguring state and sus_evt is TRUE*/
-        if ((sus_evt)&&(p_scb->state != BTA_AV_RCFG_SST))
+        if ((sus_evt) && ((p_scb->suspend_local_sent) || (p_scb->state != BTA_AV_RCFG_SST)))
         {
             suspend_rsp.status = BTA_AV_SUCCESS;
             suspend_rsp.initiator = TRUE;
@@ -2845,12 +2849,12 @@ void bta_av_suspend_cfm (tBTA_AV_SCB *p_scb, tBTA_AV_DATA *p_data)
     tBTA_AV_SUSPEND suspend_rsp;
     UINT8           err_code = p_data->str_msg.msg.hdr.err_code;
     UINT8 policy = HCI_ENABLE_SNIFF_MODE;
-
+    p_scb->suspend_local_sent = FALSE;
     if (is_sniff_disabled == true)
         policy = 0;
 
-    APPL_TRACE_DEBUG ("bta_av_suspend_cfm:audio_open_cnt = %d, err_code = %d",
-        bta_av_cb.audio_open_cnt, err_code);
+    APPL_TRACE_DEBUG ("%s:audio_open_cnt = %d, err_code = %d, scb_started = %d",
+                      __func__,bta_av_cb.audio_open_cnt,err_code,p_scb->started);
 
     if (p_scb->started == FALSE)
     {
@@ -3069,7 +3073,7 @@ void bta_av_suspend_cont (tBTA_AV_SCB *p_scb, tBTA_AV_DATA *p_data)
 {
     UINT8       err_code = p_data->str_msg.msg.hdr.err_code;
     tBTA_AV_RECONFIG    evt;
-
+    p_scb->suspend_local_sent = FALSE;
     p_scb->started = FALSE;
     p_scb->cong    = FALSE;
     if (err_code)

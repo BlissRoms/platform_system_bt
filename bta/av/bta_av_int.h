@@ -549,6 +549,7 @@ typedef struct
     UINT8               co_started;     /* non-zero, if stream started from call-out perspective */
     BOOLEAN             recfg_sup;      /* TRUE if the first attempt to reconfigure the stream was successfull, else False if command fails */
     BOOLEAN             suspend_sup;    /* TRUE if Suspend stream is supported, else FALSE if suspend command fails */
+    BOOLEAN             suspend_local_sent;    /* TRUE if outgoing Suspend is sent, else FALSE if confirmation is received */
     BOOLEAN             deregistring;   /* TRUE if deregistering */
     BOOLEAN             sco_suspend;    /* TRUE if SUSPEND is issued automatically for SCO */
     UINT8               coll_mask;      /* Mask to check incoming and outgoing collision */
