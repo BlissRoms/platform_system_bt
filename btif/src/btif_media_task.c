@@ -455,7 +455,6 @@ static void btif_media_task_handle_inc_media(tBT_SBC_HDR*p_msg);
 #endif
 
 BOOLEAN bta_av_co_audio_get_codec_config(UINT8 *p_config, UINT16 *p_minmtu, UINT8 type);
-static thread_t *aptx_thread = NULL;
 
 #if (BTA_AV_INCLUDED == TRUE)
 static void btif_media_send_aa_frame(uint64_t timestamp_us);
@@ -768,6 +767,10 @@ static void btif_recv_ctrl_data(void)
                 a2dp_cmd_acknowledge(A2DP_CTRL_ACK_INCALL_FAILURE);
                 break;
             }
+            APPL_TRACE_DEBUG("%s:A2DP command %s AV stream_started_ready %d",
+                             __func__, dump_a2dp_ctrl_event(cmd),btif_av_stream_started_ready());
+            APPL_TRACE_DEBUG("%s:A2DP command %s AV stream_ready %d",
+                             __func__, dump_a2dp_ctrl_event(cmd),btif_av_stream_ready());
 
             if (alarm_is_scheduled(btif_media_cb.media_alarm))
             {
@@ -853,6 +856,8 @@ static void btif_recv_ctrl_data(void)
 
         case A2DP_CTRL_CMD_SUSPEND:
             /* local suspend */
+            APPL_TRACE_DEBUG("%s:A2DP command %s AV stream_started_ready %d",
+                             __func__, dump_a2dp_ctrl_event(cmd),btif_av_stream_started_ready());
             if (btif_av_stream_started_ready())
             {
                 APPL_TRACE_DEBUG("Suspend stream request to Av");
@@ -870,6 +875,8 @@ static void btif_recv_ctrl_data(void)
                 /* if we are not in started state, just ack back ok and let
                    audioflinger close the channel. This can happen if we are
                    remotely suspended, clear REMOTE SUSPEND Flag */
+                APPL_TRACE_DEBUG("%s:A2DP command %s AV stream_started_ready clear flag",
+                             __func__, dump_a2dp_ctrl_event(cmd));
                 btif_av_clear_remote_suspend_flag();
                 a2dp_cmd_acknowledge(A2DP_CTRL_ACK_SUCCESS);
             }
@@ -1147,11 +1154,14 @@ static BOOLEAN btif_media_task_is_aptx_configured()
         UINT8* ptr = bta_av_co_get_current_codecInfo();
         if (ptr) {
             tA2D_APTX_CIE* codecInfo = (tA2D_APTX_CIE*) &ptr[BTA_AV_CFG_START_IDX];
+            /* Fix for below Klockwork Issue.
+             * Pointer 'codecInfo' checked for NULL at line 1089 may be dereferenced at line 1092.*/
             if ((codecInfo && codecInfo->vendorId == A2D_APTX_VENDOR_ID && codecInfo->codecId == A2D_APTX_CODEC_ID_BLUETOOTH)
-                || (codecInfo && codecInfo->vendorId == A2D_APTX_HD_VENDOR_ID && codecInfo->codecId == A2D_APTX_HD_CODEC_ID_BLUETOOTH))
+                || (codecInfo && codecInfo->vendorId == A2D_APTX_HD_VENDOR_ID && codecInfo->codecId == A2D_APTX_HD_CODEC_ID_BLUETOOTH)) {
                 APPL_TRACE_DEBUG("%s codecId %d", __func__, codecInfo->codecId);
                 APPL_TRACE_DEBUG("%s vendorId %x", __func__, codecInfo->vendorId);
                 result = TRUE;
+            }
         }
     }
     return result;
@@ -1479,12 +1489,7 @@ void btif_a2dp_stop_media_task(void)
     media_task_running = MEDIA_TASK_STATE_SHUTTING_DOWN;
 
     // remove aptX thread
-    if (A2d_aptx_thread)
-    {
-        A2D_aptx_sched_stop();
-        thread_free(A2d_aptx_thread);
-        A2d_aptx_thread = NULL;
-    }
+    A2D_stop_aptX();
 
     // Stop timer
     alarm_free(btif_media_cb.media_alarm);
@@ -3534,35 +3539,32 @@ static void btif_media_task_aa_start_tx(void)
     if (!bt_split_a2dp_enabled)
     {
         if (isA2dAptXEnabled && btif_media_task_is_aptx_configured()) {
+
 #if (BTA_AV_CO_CP_SCMS_T == TRUE)
-          BOOLEAN use_SCMS_T = true;
+        BOOLEAN use_SCMS_T = true;
 #else
-          BOOLEAN use_SCMS_T = false;
+        BOOLEAN use_SCMS_T = false;
 #endif
-          A2D_AptXCodecType aptX_codec_type = btif_media_task_get_aptX_codec_type();
-          BOOLEAN is_24bit_audio = true;
+        A2D_AptXCodecType aptX_codec_type = btif_media_task_get_aptX_codec_type();
+        BOOLEAN is_24bit_audio = true;
 
-          BOOLEAN test = false;
-          BOOLEAN trace = false;
+        BOOLEAN test = false;
+        BOOLEAN trace = false;
 
-          A2d_aptx_thread_fn = A2D_aptx_sched_start(btif_media_cb.aptxEncoderParams.encoder,
-                   aptX_codec_type,
-                   use_SCMS_T,
-                   is_24bit_audio,
-                   btif_media_cb.media_feeding.cfg.pcm.sampling_freq,
-                   btif_media_cb.media_feeding.cfg.pcm.bit_per_sample,
-                   UIPC_CH_ID_AV_AUDIO,
-                   btif_media_cb.TxAaMtuSize,
-                   UIPC_Read,
-                   btif_media_task_cb_packet_send,
-                   raise_priority_a2dp,
-                   test,
-                   trace);
+        A2D_start_aptX(btif_media_cb.aptxEncoderParams.encoder,
+                 aptX_codec_type,
+                 use_SCMS_T,
+                 is_24bit_audio,
+                 btif_media_cb.media_feeding.cfg.pcm.sampling_freq,
+                 btif_media_cb.media_feeding.cfg.pcm.bit_per_sample,
+                 UIPC_CH_ID_AV_AUDIO,
+                 btif_media_cb.TxAaMtuSize,
+                 UIPC_Read,
+                 btif_media_task_cb_packet_send,
+                 raise_priority_a2dp,
+                 test,
+                 trace);
 
-          A2d_aptx_thread = thread_new("aptx_media_worker");
-          if (A2d_aptx_thread ) {
-             thread_post(A2d_aptx_thread, A2d_aptx_thread_fn, NULL);
-          }
         } else {
             APPL_TRACE_EVENT("starting timer %dms", BTIF_MEDIA_TIME_TICK);
 
@@ -3596,10 +3598,9 @@ static void btif_media_task_aa_stop_tx(void)
                          alarm_is_scheduled(btif_media_cb.media_alarm)? "" : "not ");
         const bool send_ack = alarm_is_scheduled(btif_media_cb.media_alarm);
 
-        if (isA2dAptXEnabled && A2D_aptx_sched_stop())
+        if (isA2dAptXEnabled && A2d_aptx_thread)
         {
-            thread_free(aptx_thread);
-            aptx_thread = NULL;
+            A2D_stop_aptX();
         }
         else
         {

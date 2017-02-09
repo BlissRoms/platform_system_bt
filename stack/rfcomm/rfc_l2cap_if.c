@@ -35,7 +35,9 @@
 #include "l2cdefs.h"
 #include "rfc_int.h"
 #include "bt_utils.h"
+#include "port_ext.h"
 
+extern fixed_queue_t *btu_general_alarm_queue;
 
 /*
 ** Define Callback functions to be called by L2CAP
@@ -104,10 +106,12 @@ void RFCOMM_ConnectInd (BD_ADDR bd_addr, UINT16 lcid, UINT16 psm, UINT8 id)
             /* wait random timeout (2 - 12) to resolve collision */
             /* if peer gives up then local device rejects incoming connection and continues as initiator */
             /* if timeout, local device disconnects outgoing connection and continues as acceptor */
-            RFCOMM_TRACE_DEBUG ("RFCOMM_ConnectInd start timer for collision, initiator's LCID(0x%x), acceptor's LCID(0x%x)",
-                                  p_mcb->lcid, p_mcb->pending_lcid);
-
-            rfc_timer_start(p_mcb, (UINT16)(time_get_os_boottime_ms() % 10 + 2));
+            period_ms_t interval_ms = (((time_get_os_boottime_ms() % 20) * 500) + 2000);
+            RFCOMM_TRACE_DEBUG ("RFCOMM_ConnectInd start collision timer = %d ms , initiator's LCID(0x%x), acceptor's LCID(0x%x)",
+                                  interval_ms, p_mcb->lcid, p_mcb->pending_lcid);
+            alarm_set_on_queue(p_mcb->mcb_timer, interval_ms,
+                       rfcomm_mcb_timer_timeout, p_mcb,
+                       btu_general_alarm_queue);
             GENERATE_VENDOR_LOGS();
             return;
         }
