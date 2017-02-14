@@ -414,12 +414,15 @@ tBTA_JV_STATUS bta_jv_free_l2c_cb(tBTA_JV_L2C_CB *p_cb)
 *******************************************************************************/
 static void bta_jv_clear_pm_cb(tBTA_JV_PM_CB *p_pm_cb, BOOLEAN close_conn)
 {
+    /* Ensure that timer is stopped */
+    alarm_cancel(p_pm_cb->idle_timer);
+
     /* needs to be called if registered with bta pm, otherwise we may run out of dm pm slots! */
     if (close_conn)
         bta_sys_conn_close(BTA_ID_JV, p_pm_cb->app_id, p_pm_cb->peer_bd_addr);
+    else
+        bta_jv_pm_state_change(p_pm_cb, BTA_JV_CONN_IDLE);
 
-    /* Ensure that timer is stopped */
-    alarm_cancel(p_pm_cb->idle_timer);
     p_pm_cb->state = BTA_JV_PM_FREE_ST;
     p_pm_cb->app_id = BTA_JV_PM_ALL;
     p_pm_cb->handle = BTA_JV_PM_HANDLE_CLEAR;
@@ -460,10 +463,6 @@ static tBTA_JV_STATUS bta_jv_free_set_pm_profile_cb(UINT32 jv_handle)
                     "app_id: 0x%x",__func__, jv_handle, i, bta_jv_cb.pm_cb[i].app_id);
             APPL_TRACE_API("%s, bd_counter = %d, "
                     "appid_counter = %d", __func__, bd_counter, appid_counter);
-            if (bd_counter > 1)
-            {
-                bta_jv_pm_conn_idle(&bta_jv_cb.pm_cb[i]);
-            }
 
             if (bd_counter <= 1 || (appid_counter <= 1))
             {
