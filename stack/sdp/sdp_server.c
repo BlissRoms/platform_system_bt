@@ -60,6 +60,7 @@ extern fixed_queue_t *btu_general_alarm_queue;
 #define AVRCP_SUPPORTED_FEATURES_POSITION 1
 #define AVRCP_BROWSE_SUPPORT_BITMASK    0x40
 #define AVRCP_CA_SUPPORT_BITMASK        0x01
+#define PBAP_LEGACY_VERSION             0x01
 
 /********************************************************************************/
 /*              L O C A L    F U N C T I O N     P R O T O T Y P E S            */
@@ -76,6 +77,7 @@ static void process_service_search_attr_req (tCONN_CB *p_ccb, UINT16 trans_num,
                                              UINT16 param_len, UINT8 *p_req,
                                              UINT8 *p_req_end);
 
+static BOOLEAN sdp_change_pbap_version (tSDP_ATTRIBUTE *p_attr, BD_ADDR remote_address);
 
 /********************************************************************************/
 /*                  E R R O R   T E X T   S T R I N G S                         */
@@ -599,6 +601,7 @@ static void process_service_attr_req (tCONN_CB *p_ccb, UINT16 trans_num,
     BOOLEAN         is_hfp_fallback = FALSE;
     BOOLEAN         is_avrcp_ca_bit_reset = FALSE;
     UINT16          attr_len;
+    BOOLEAN         is_pbap_fallback = FALSE;
 
     /* Extract the record handle */
     BE_STREAM_TO_UINT32 (rec_handle, p_req);
@@ -700,6 +703,8 @@ static void process_service_attr_req (tCONN_CB *p_ccb, UINT16 trans_num,
 #endif
 #endif
             is_hfp_fallback = sdp_change_hfp_version (p_attr, p_ccb->device_address);
+            is_pbap_fallback = sdp_change_pbap_version (p_attr, p_ccb->device_address);
+
             /* Check if attribute fits. Assume 3-byte value type/length */
             rem_len = max_list_len - (INT16) (p_rsp - &p_ccb->rsp_list[0]);
 
@@ -788,6 +793,13 @@ static void process_service_attr_req (tCONN_CB *p_ccb, UINT16 trans_num,
                                         |= AVRCP_CA_SUPPORT_BITMASK;
                 is_avrcp_ca_bit_reset = FALSE;
             }
+            if (is_pbap_fallback)
+            {
+                SDP_TRACE_ERROR("Restore PBAP version to 1.2");
+                /* Update PBAP version back to 1.2 */
+                p_attr->value_ptr[PROFILE_VERSION_POSITION] = 0x02;
+                is_pbap_fallback = FALSE;
+            }
         }
     }
     if (is_avrcp_fallback)
@@ -825,6 +837,13 @@ static void process_service_attr_req (tCONN_CB *p_ccb, UINT16 trans_num,
         p_attr->value_ptr[AVRCP_SUPPORTED_FEATURES_POSITION - 1]
                                 |= AVRCP_CA_SUPPORT_BITMASK;
         is_avrcp_ca_bit_reset = FALSE;
+    }
+    if (is_pbap_fallback)
+    {
+        SDP_TRACE_ERROR("Restore PBAP version to 1.2");
+        /* Update PBAP version back to 1.2 */
+        p_attr->value_ptr[PROFILE_VERSION_POSITION] = 0x02;
+        is_pbap_fallback = FALSE;
     }
     /* If all the attributes have been accomodated in p_rsp,
        reset next_attr_index */
@@ -933,6 +952,7 @@ static void process_service_search_attr_req (tCONN_CB *p_ccb, UINT16 trans_num,
     BOOLEAN         is_avrcp_ca_bit_reset = FALSE;
     UINT8           *p_seq_start = NULL;
     UINT16          seq_len, attr_len;
+    BOOLEAN         is_pbap_fallback = FALSE;
     UNUSED(p_req_end);
 
     /* Extract the UUID sequence to search for */
@@ -1048,6 +1068,7 @@ static void process_service_search_attr_req (tCONN_CB *p_ccb, UINT16 trans_num,
 #endif
 #endif
                 is_hfp_fallback = sdp_change_hfp_version (p_attr, p_ccb->device_address);
+                is_pbap_fallback = sdp_change_pbap_version (p_attr, p_ccb->device_address);
                 /* Check if attribute fits. Assume 3-byte value type/length */
                 rem_len = max_list_len - (INT16) (p_rsp - &p_ccb->rsp_list[0]);
 
@@ -1141,6 +1162,13 @@ static void process_service_search_attr_req (tCONN_CB *p_ccb, UINT16 trans_num,
                                             |= AVRCP_CA_SUPPORT_BITMASK;
                     is_avrcp_ca_bit_reset = FALSE;
                 }
+                if (is_pbap_fallback)
+                {
+                    SDP_TRACE_ERROR("Restore PBAP version to 1.2");
+                    /* Update PBAP version back to 1.2 */
+                    p_attr->value_ptr[PROFILE_VERSION_POSITION] = 0x02;
+                    is_pbap_fallback = FALSE;
+                }
             }
         }
         if (is_avrcp_fallback)
@@ -1178,6 +1206,13 @@ static void process_service_search_attr_req (tCONN_CB *p_ccb, UINT16 trans_num,
             p_attr->value_ptr[AVRCP_SUPPORTED_FEATURES_POSITION - 1]
                                     |= AVRCP_CA_SUPPORT_BITMASK;
             is_avrcp_ca_bit_reset = FALSE;
+        }
+        if (is_pbap_fallback)
+        {
+            SDP_TRACE_ERROR("Restore PBAP version to 1.2");
+            /* Update PBAP version back to 1.2 */
+            p_attr->value_ptr[PROFILE_VERSION_POSITION] = 0x02;
+            is_pbap_fallback = FALSE;
         }
 
         /* Go back and put the type and length into the buffer */
@@ -1307,6 +1342,39 @@ static void process_service_search_attr_req (tCONN_CB *p_ccb, UINT16 trans_num,
 
     /* Send the buffer through L2CAP */
     L2CA_DataWrite (p_ccb->connection_id, p_buf);
+}
+
+/*************************************************************************************
+**
+** Function        sdp_change_pbap_version
+**
+** Description     Checks if UUID is PHONE_ACCESS, attribute id
+**                 is Profile descriptor list and remote BD address
+**                 matches device blacklist, change pbap version to 1.1
+**
+** Returns         BOOLEAN
+**
+***************************************************************************************/
+static BOOLEAN sdp_change_pbap_version (tSDP_ATTRIBUTE *p_attr, BD_ADDR remote_address)
+{
+    bt_bdaddr_t remote_bdaddr;
+    bdcpy(remote_bdaddr.address, remote_address);
+    if ((p_attr->id == ATTR_ID_BT_PROFILE_DESC_LIST) &&
+        (p_attr->len >= SDP_PROFILE_DESC_LENGTH)) {
+        /* As per current DB implementation UUID is condidered as 16 bit */
+        if (((p_attr->value_ptr[3] << 8) | (p_attr->value_ptr[4])) ==
+                UUID_SERVCLASS_PHONE_ACCESS &&
+                (p_attr->value_ptr[PROFILE_VERSION_POSITION] >
+                PBAP_LEGACY_VERSION)) {
+            if (interop_match_addr(INTEROP_ADV_PBAP_VER_1_1, &remote_bdaddr)) {
+                SDP_TRACE_DEBUG("Downgrading PBAP Version to = 0x%x",
+                         PBAP_LEGACY_VERSION);
+                p_attr->value_ptr[PROFILE_VERSION_POSITION] = PBAP_LEGACY_VERSION;
+                return TRUE;
+            }
+        }
+    }
+    return FALSE;
 }
 
 #endif  /* SDP_SERVER_ENABLED == TRUE */

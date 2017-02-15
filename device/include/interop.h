@@ -107,6 +107,7 @@ typedef enum {
   // Few remote devices do not understand AVRCP version greater than 1.3. For these
   // devices, we would like to blacklist them and advertise AVRCP version as 1.3
   INTEROP_ADV_AVRCP_VER_1_3,
+
   // certain remote A2DP sinks have issue playing back Music in AAC format.
   // disable AAC for those headsets so that it switch to SBC
   INTEROP_DISABLE_AAC_CODEC,
@@ -132,6 +133,11 @@ typedef enum {
   // seeing DUT's AVRCP version as v1.6. Hence fallback DUT's
   // AVRCP version to v1.4 for those Carkits
   INTEROP_STORE_REMOTE_AVRCP_VERSION_1_4,
+
+  // Devices requiring this workaround do not handle Bluetooth PBAP 1.2 version correctly,
+  // leading them to go in bad state. So for better interoperability respond with PBAP 1.1
+  // as supported version.
+  INTEROP_ADV_PBAP_VER_1_1,
 
   END_OF_INTEROP_LIST
 
