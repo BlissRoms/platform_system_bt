@@ -607,7 +607,7 @@ void handle_rc_features(int index)
                          bdaddr_to_string(&avdtp_addr, addr1, sizeof(bdstr_t)),
                          bdaddr_to_string(&rc_addr, addr2, sizeof(bdstr_t)) );
 
-        if (interop_match_addr(INTEROP_DISABLE_ABSOLUTE_VOLUME, &rc_addr)
+        if (interop_match_addr(INTEROP_DISABLE_ABSOLUTE_VOLUME, (bt_bdaddr_t *)&rc_addr)
                 || absolute_volume_disabled()
                 || bdcmp(avdtp_addr.address, rc_addr.address))
             btif_rc_cb[index].rc_features &= ~BTA_AV_FEAT_ADV_CTRL;
