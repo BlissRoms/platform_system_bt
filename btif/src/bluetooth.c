@@ -534,7 +534,7 @@ int hci_cmd_send(uint16_t opcode, uint8_t* buf, uint8_t len)
     ALOGI("hci_cmd_send");
 
     /* sanity check */
-    if (interface_ready() == FALSE)
+    if (interface_ready() == FALSE || stack_manager_get_interface()->get_stack_is_running() == FALSE)
         return BT_STATUS_NOT_READY;
 
     return btif_hci_cmd_send(opcode, buf, len);
