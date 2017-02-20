@@ -182,7 +182,7 @@ static BOOLEAN btif_av_state_started_handler(btif_sm_event_t event, void *data,i
 static BOOLEAN btif_av_state_closing_handler(btif_sm_event_t event, void *data,int index);
 
 static BOOLEAN btif_av_get_valid_idx(int idx);
-static UINT8 btif_av_idx_by_bdaddr( BD_ADDR bd_addr);
+UINT8 btif_av_idx_by_bdaddr( BD_ADDR bd_addr);
 int btif_get_latest_playing_device_idx();
 static int btif_get_latest_device_idx_to_start();
 static int btif_av_get_valid_idx_for_rc_events(BD_ADDR bd_addr, int rc_handle);
@@ -238,13 +238,11 @@ tBTA_AV_HNDL btif_av_get_av_hdl_from_idx(UINT8 idx);
 int btif_av_get_other_connected_idx(int current_index);
 #ifdef BTA_AV_SPLIT_A2DP_ENABLED
 BOOLEAN btif_av_is_codec_offload_supported(int codec);
-int btif_av_get_current_playing_dev_idx();
 BOOLEAN btif_av_is_under_handoff();
 void btif_av_reset_reconfig_flag();
 BOOLEAN btif_av_is_device_disconnecting();
 #else
 #define btif_av_is_codec_offload_supported(codec) (0)
-#define btif_av_get_current_playing_dev_idx() (0)
 #define btif_av_is_under_handoff() (0)
 #define btif_av_reset_reconfig_flag() (0)
 #define btif_av_is_device_disconnecting() (0)
@@ -1162,6 +1160,19 @@ static BOOLEAN btif_av_state_closing_handler(btif_sm_event_t event, void *p_data
    return TRUE;
 }
 
+/******************************************************************************
+**
+** Function        btif_av_is_offload_supported
+**
+** Description     Returns split mode status
+**
+** Returns         TRUE if split mode is enabled, FALSE otherwise
+********************************************************************************/
+BOOLEAN btif_av_is_offload_supported()
+{
+    return bt_split_a2dp_enabled;
+}
+
 /*****************************************************************************
 **
 ** Function     btif_av_state_opened_handler
@@ -1328,6 +1339,10 @@ static BOOLEAN btif_av_state_opened_handler(btif_sm_event_t event, void *p_data,
                             BTIF_TRACE_DEBUG("%s: clear remote suspend flag on remote start",
                                 __FUNCTION__);
                             btif_av_cb[index].flags &= ~BTIF_AV_FLAG_REMOTE_SUSPEND;
+                            if (btif_av_is_offload_supported())
+                            {
+                               btif_media_start_vendor_command();
+                            }
                         }
                         else
                         {
@@ -2124,7 +2139,7 @@ static BOOLEAN btif_av_get_valid_idx(int idx)
 **
 *******************************************************************************/
 
-static UINT8 btif_av_idx_by_bdaddr(BD_ADDR bd_addr)
+UINT8 btif_av_idx_by_bdaddr(BD_ADDR bd_addr)
 {
     int i;
     for (i = 0; i < btif_max_av_clients; i++)
@@ -3728,17 +3743,19 @@ BOOLEAN btif_av_is_multicast_supported()
     return is_multicast_supported;
 }
 
-/******************************************************************************
-**
-** Function        btif_av_is_offload_supported
-**
-** Description     Returns split mode status
-**
-** Returns         TRUE if split mode is enabled, FALSE otherwise
-********************************************************************************/
-BOOLEAN btif_av_is_offload_supported()
+BOOLEAN btif_av_check_flag_remote_suspend(int index)
 {
-    return bt_split_a2dp_enabled;
+    BTIF_TRACE_ERROR("%s: index = %d",__FUNCTION__,index);
+    if (btif_av_cb[index].flags & BTIF_AV_FLAG_REMOTE_SUSPEND)
+    {
+        BTIF_TRACE_DEBUG("remote suspend flag set on index = %d",index);
+        return TRUE;
+    }
+    else
+    {
+        BTIF_TRACE_DEBUG("remote suspend flag not set on index = %d",index);
+        return FALSE;
+    }
 }
 
 #ifdef BTA_AV_SPLIT_A2DP_ENABLED

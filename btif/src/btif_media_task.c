@@ -490,13 +490,11 @@ extern BOOLEAN btif_av_is_device_disconnecting();
 extern void btif_av_reset_reconfig_flag();
 void btif_media_send_reset_vendor_state();
 void btif_media_on_start_vendor_command();
-void btif_media_start_vendor_command();
 void btif_media_on_stop_vendor_command();
 BOOLEAN btif_media_send_vendor_pref_bit_rate();
 BOOLEAN btif_media_send_vendor_write_sbc_cfg();
 BOOLEAN btif_media_send_vendor_media_chn_cfg();
 BOOLEAN btif_media_send_vendor_stop();
-BOOLEAN btif_media_send_vendor_start();
 void disconnect_a2dp_on_vendor_start_failure();
 BOOLEAN btif_media_send_vendor_selected_codec();
 BOOLEAN btif_media_send_vendor_transport_cfg();
@@ -509,13 +507,11 @@ void btif_a2dp_remote_start_timer();
 #define btif_av_reset_reconfig_flag() (0)
 #define btif_media_send_reset_vendor_state() (0)
 #define btif_media_on_start_vendor_command() (0)
-#define btif_media_start_vendor_command()    (0)
 #define btif_media_on_stop_vendor_command()  (0)
 #define btif_media_send_vendor_pref_bit_rate() (0)
 #define btif_media_send_vendor_write_sbc_cfg() (0)
 #define btif_media_send_vendor_media_chn_cfg() (0)
 #define btif_media_send_vendor_stop()        (0)
-#define btif_media_send_vendor_start()       (0)
 #define disconnect_a2dp_on_vendor_start_failure() (0)
 #define btif_media_send_vendor_selected_codec() (0)
 #define btif_media_send_vendor_transport_cfg()  (0)
