@@ -234,10 +234,12 @@ int btif_av_get_other_connected_idx(int current_index);
 BOOLEAN btif_av_is_codec_offload_supported(int codec);
 int btif_av_get_current_playing_dev_idx();
 BOOLEAN btif_av_is_under_handoff();
+void btif_av_reset_reconfig_flag();
 #else
 #define btif_av_is_codec_offload_supported(codec) (0)
 #define btif_av_get_current_playing_dev_idx() (0)
 #define btif_av_is_under_handoff() (0)
+#define btif_av_reset_reconfig_flag() (0)
 #endif
 
 const char *dump_av_sm_state_name(btif_av_state_t state)
@@ -1422,7 +1424,7 @@ static BOOLEAN btif_av_state_started_handler(btif_sm_event_t event, void *p_data
             }
             //This is latest device to play now
             btif_av_cb[index].current_playing = TRUE;
-            reconfig_a2dp = FALSE;
+            //reconfig_a2dp = FALSE;
             break;
 
         case BTIF_SM_EXIT_EVT:
@@ -3744,6 +3746,12 @@ BOOLEAN btif_av_is_under_handoff()
         }
     }
     return FALSE;
+}
+
+void btif_av_reset_reconfig_flag()
+{
+    BTIF_TRACE_DEBUG("%s",__func__);
+    reconfig_a2dp = FALSE;
 }
 #endif
 
