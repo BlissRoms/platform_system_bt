@@ -213,7 +213,7 @@ extern void btif_rc_clear_priority(BD_ADDR address);
 extern void btif_rc_send_pause_command();
 extern UINT16 btif_dm_get_br_edr_links();
 extern UINT16 btif_dm_get_le_links();
-extern UINT16 btif_hf_is_call_idle();
+extern UINT16 btif_hf_is_call_vr_idle();
 
 extern fixed_queue_t *btu_general_alarm_queue;
 
@@ -1170,7 +1170,7 @@ static BOOLEAN btif_av_state_opened_handler(btif_sm_event_t event, void *p_data,
                 return TRUE;
 
             /* if remote tries to start a2dp when call is in progress, suspend it right away */
-            if ((!(btif_av_cb[index].flags & BTIF_AV_FLAG_PENDING_START)) && (!btif_hf_is_call_idle())) {
+            if ((!(btif_av_cb[index].flags & BTIF_AV_FLAG_PENDING_START)) && (!btif_hf_is_call_vr_idle())) {
                 BTIF_TRACE_EVENT("%s: trigger suspend as call is in progress!!", __FUNCTION__);
                 btif_av_cb[index].flags &= ~BTIF_AV_FLAG_PENDING_START;
                 btif_sm_change_state(btif_av_cb[index].sm_handle, BTIF_AV_STATE_STARTED);
