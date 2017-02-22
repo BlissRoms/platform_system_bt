@@ -132,7 +132,7 @@
 
 #define FILL_PDU_QUEUE(idx, ctype, label, pending, index, cmd)                                 \
 {                                                                                              \
-    btif_rc_cb[index].rc_pdu_info[idx].ctype = ctype;                                          \
+    btif_rc_cb[index].rc_pdu_info[idx].ctype[idx] = ctype;                                     \
     TXN_LABEL_ENQUEUE(btif_rc_cb[index].rc_handle, btif_rc_cb[index].rc_pdu_info[idx].label,   \
             btif_rc_cb[index].rc_pdu_info[idx].front, btif_rc_cb[index].rc_pdu_info[idx].rear, \
             btif_rc_cb[index].rc_pdu_info[idx].size, label, cmd);                              \
@@ -155,12 +155,14 @@
             btif_rc_cb[index].rc_pdu_info[idx].rear,                                           \
             btif_rc_cb[index].rc_pdu_info[idx].size);                                          \
     send_metamsg_rsp(btif_rc_cb[index].rc_handle, curr_label,                                  \
-            btif_rc_cb[index].rc_pdu_info[idx].ctype, avrc_rsp);                               \
+            btif_rc_cb[index].rc_pdu_info[idx].ctype[idx], avrc_rsp);                          \
     BTIF_TRACE_DEBUG("%s txn label %d dequeued from txn queue, queue sz %d \n", __FUNCTION__,  \
             curr_label, btif_rc_cb[index].rc_pdu_info[idx].size);                              \
-    btif_rc_cb[index].rc_pdu_info[idx].ctype = 0;                                              \
     if (btif_rc_cb[index].rc_pdu_info[idx].size == 0)                                          \
+    {                                                                                          \
+        btif_rc_cb[index].rc_pdu_info[idx].ctype[idx] = 0;                                     \
         btif_rc_cb[index].rc_pdu_info[idx].is_rsp_pending = FALSE;                             \
+    }                                                                                          \
 }
 
 #define SEND_BROWSEMSG_RSP(idx , avrc_rsp, index)                                              \
@@ -177,12 +179,14 @@
             btif_rc_cb[index].rc_pdu_info[idx].rear,                                           \
             btif_rc_cb[index].rc_pdu_info[idx].size);                                          \
     send_browsemsg_rsp(btif_rc_cb[index].rc_handle, curr_label,                                \
-            btif_rc_cb[index].rc_pdu_info[idx].ctype, avrc_rsp);                               \
+            btif_rc_cb[index].rc_pdu_info[idx].ctype[idx], avrc_rsp);                          \
     BTIF_TRACE_DEBUG("%s txn label %d dequeued from txn queue, queue sz %d \n", __FUNCTION__,  \
             curr_label, btif_rc_cb[index].rc_pdu_info[idx].size);                              \
-    btif_rc_cb[index].rc_pdu_info[idx].ctype = 0;                                              \
     if (btif_rc_cb[index].rc_pdu_info[idx].size == 0)                                          \
+    {                                                                                          \
+        btif_rc_cb[index].rc_pdu_info[idx].ctype[idx] = 0;                                     \
         btif_rc_cb[index].rc_pdu_info[idx].is_rsp_pending = FALSE;                             \
+    }                                                                                          \
 }
 
 /*****************************************************************************
@@ -199,7 +203,7 @@ typedef struct
     int rear;
     int size;
     UINT8 label[MAX_TRANSACTIONS_PER_SESSION];
-    UINT8   ctype;
+    UINT8 ctype[MAX_TRANSACTIONS_PER_SESSION];
     BOOLEAN is_rsp_pending;
 } btif_rc_cmd_ctxt_t;
 
