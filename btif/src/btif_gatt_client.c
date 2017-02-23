@@ -1040,6 +1040,7 @@ static void bta_scan_results_cb (tBTA_DM_SEARCH_EVT event, tBTA_DM_SEARCH *p_dat
             btif_cb.flag = p_data->inq_res.flag;
             btif_cb.adv_data_len = p_data->inq_res.adv_data_len;
 
+            memset(&btif_cb.value[0], 0, BTGATT_MAX_ATTR_LEN);
             if (p_data->inq_res.p_eir)
             {
                 memcpy(btif_cb.value, p_data->inq_res.p_eir, p_data->inq_res.adv_data_len);
