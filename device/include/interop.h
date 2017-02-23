@@ -144,6 +144,12 @@ typedef enum {
   // suspends DUT's start request. So honor remote start for certain devices.
   INTEROP_REMOTE_AVDTP_START,
 
+  // Devices requiring this workaround do not handle SSR max latency values as mentioned,
+  // in their SDP HID Record properly and lead to connection timeout or lags. To prevent
+  // such scenarios, device requiring this workaorund need to use specific ssr max latency
+  // values.
+  INTEROP_UPDATE_HID_SSR_MAX_LAT,
+
   END_OF_INTEROP_LIST
 
 } interop_feature_t;
@@ -181,6 +187,14 @@ bool interop_match_manufacturer(const interop_feature_t feature, uint16_t manufa
 // where more information is not available.
 bool interop_match_vendor_product_ids(const interop_feature_t feature,
         uint16_t vendor_id, uint16_t product_id);
+
+// Check if a given |addr| matches a known interoperability workaround as identified
+// by the |interop_feature_t| enum. This API is used for simple address based lookups
+// where more information is not available. No look-ups or random address resolution
+// are performed on |addr|. If address is matched, max latency for SSR stored for particular
+// remote device is returned.
+bool interop_match_addr_get_max_lat(const interop_feature_t feature,
+        const bt_bdaddr_t *addr, uint16_t *max_lat);
 
 // Add a dynamic interop database entry for a device matching the first |length| bytes
 // of |addr|, implementing the workaround identified by |feature|. |addr| may not be
