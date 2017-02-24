@@ -899,10 +899,10 @@ void BTA_AvOffloadStartRsp(tBTA_AV_HNDL hndl, tBTA_AV_STATUS status);
 **
 ** Description      Returns the codec_type from the most recently used scb
 **
-** Returns          A2D_NON_A2DP_MEDIA_CT or BTIF_AV_CODEC_SBC
+** Returns          Codec type corresponding to AV handle
 **
 *******************************************************************************/
-UINT8 bta_av_get_codec_type();
+UINT8 bta_av_get_codec_type(tBTA_AV_HNDL hndl);
 
 #ifdef __cplusplus
 }

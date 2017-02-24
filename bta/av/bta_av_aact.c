@@ -1607,11 +1607,15 @@ void bta_av_str_opened (tBTA_AV_SCB *p_scb, tBTA_AV_DATA *p_data)
 ** Returns          bta_av_cb.codec_type
 **
 *******************************************************************************/
-UINT8 bta_av_get_codec_type()
+UINT8 bta_av_get_codec_type(tBTA_AV_HNDL hndl)
 {
+    APPL_TRACE_DEBUG("%s: hdl = %x", __func__, hndl);
+    tBTA_AV_SCB *p_scb = bta_av_hndl_to_scb(hndl);
+    bta_av_cb.codec_type = p_scb->codec_type;
     APPL_TRACE_DEBUG("%s [bta_av_cb.codec_type] %x", __func__, bta_av_cb.codec_type);
     return bta_av_cb.codec_type;
 }
+
 /*******************************************************************************
 **
 ** Function         bta_av_security_ind

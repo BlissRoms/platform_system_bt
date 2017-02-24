@@ -141,6 +141,7 @@ static BOOLEAN enable_multicast = FALSE;
 static BOOLEAN is_multicast_supported = FALSE;
 static BOOLEAN multicast_disabled = FALSE;
 BOOLEAN bt_split_a2dp_enabled = FALSE;
+BOOLEAN reconfig_a2dp = FALSE;
 btif_av_a2dp_offloaded_codec_cap_t btif_av_codec_offload;
 /* both interface and media task needs to be ready to alloc incoming request */
 #define CHECK_BTAV_INIT() if (((bt_av_src_callbacks == NULL) &&(bt_av_sink_callbacks == NULL)) \
@@ -233,10 +234,12 @@ int btif_av_get_other_connected_idx(int current_index);
 BOOLEAN btif_av_is_codec_offload_supported(int codec);
 int btif_av_get_current_playing_dev_idx();
 BOOLEAN btif_av_is_under_handoff();
+void btif_av_reset_reconfig_flag();
 #else
 #define btif_av_is_codec_offload_supported(codec) (0)
 #define btif_av_get_current_playing_dev_idx() (0)
 #define btif_av_is_under_handoff() (0)
+#define btif_av_reset_reconfig_flag() (0)
 #endif
 
 const char *dump_av_sm_state_name(btif_av_state_t state)
@@ -476,6 +479,7 @@ static BOOLEAN btif_av_state_idle_handler(btif_sm_event_t event, void *p_data, i
                  bt_split_a2dp_enabled)
             {
                 BTIF_TRACE_EVENT("reset Vendor flag A2DP state is IDLE");
+                reconfig_a2dp = FALSE;
                 btif_media_send_reset_vendor_state();
             }
             break;
@@ -1420,6 +1424,7 @@ static BOOLEAN btif_av_state_started_handler(btif_sm_event_t event, void *p_data
             }
             //This is latest device to play now
             btif_av_cb[index].current_playing = TRUE;
+            //reconfig_a2dp = FALSE;
             break;
 
         case BTIF_SM_EXIT_EVT:
@@ -1508,6 +1513,7 @@ static BOOLEAN btif_av_state_started_handler(btif_sm_event_t event, void *p_data
                  * Array 'btif_av_cb' of size 2 may use index value(s) -1 */
                 if (idx != INVALID_INDEX)
                 {
+                    reconfig_a2dp = TRUE;
                     HAL_CBACK(bt_av_src_callbacks, reconfig_a2dp_trigger_cb, 1,
                                                     &(btif_av_cb[idx].peer_bda));
                 }
@@ -1636,6 +1642,7 @@ static BOOLEAN btif_av_state_started_handler(btif_sm_event_t event, void *p_data
                  * Array 'btif_av_cb' of size 2 may use index value(s) -1 */
                 if (idx != INVALID_INDEX)
                 {
+                    reconfig_a2dp = TRUE;
                     HAL_CBACK(bt_av_src_callbacks, reconfig_a2dp_trigger_cb, 1,
                                                     &(btif_av_cb[idx].peer_bda));
                 }
@@ -2540,6 +2547,7 @@ void btif_av_trigger_dual_handoff(BOOLEAN handoff, BD_ADDR address)
         Array 'btif_av_cb' of size 2 may use index value(s) -1 */
         if (next_idx != INVALID_INDEX && next_idx != btif_max_av_clients)
         {
+            reconfig_a2dp = TRUE;
             HAL_CBACK(bt_av_src_callbacks, reconfig_a2dp_trigger_cb, 1,
                                     &(btif_av_cb[next_idx].peer_bda));
         }
@@ -3738,6 +3746,12 @@ BOOLEAN btif_av_is_under_handoff()
         }
     }
     return FALSE;
+}
+
+void btif_av_reset_reconfig_flag()
+{
+    BTIF_TRACE_DEBUG("%s",__func__);
+    reconfig_a2dp = FALSE;
 }
 #endif
 

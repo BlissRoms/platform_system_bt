@@ -716,7 +716,8 @@ int a2dp_read_codec_config(struct a2dp_stream_common *common,uint8_t idx)
         ERROR("%s: Failed to get ack",__func__);
         return -1;
     }
-    if (a2dp_ctrl_receive(common, &len, 1) < 0)
+    if ((a2dp_ctrl_receive(common, &len, 1) < 0) ||
+        (len <= 0) || (len > MAX_CODEC_CFG_SIZE))
         return -1;
     if (a2dp_ctrl_receive(common, p_codec_cfg, len) < 0)
         return -1;
@@ -1124,6 +1125,17 @@ void* audio_get_next_codec_config(uint8_t idx, audio_format_t *codec_type)
     }
     return NULL;
 }
+
+int audio_check_a2dp_ready()
+{
+    INFO("audio_check_a2dp_ready: state %s", dump_a2dp_hal_state(audio_stream.state));
+    if (a2dp_command(&audio_stream, A2DP_CTRL_CMD_CHECK_READY) != 0)
+    {
+        INFO("audio_check_a2dp_ready: FAIL");
+        return 0;
+    }
+    return 1;
+}
 //Entry point for dynamic lib
 const bt_host_ipc_interface_t BTHOST_IPC_INTERFACE = {
     sizeof(bt_host_ipc_interface_t),
@@ -1147,5 +1159,6 @@ const bt_host_ipc_interface_t BTHOST_IPC_INTERFACE = {
     audio_get_codec_config,
     audio_handoff_triggered,
     clear_a2dpsuspend_flag,
-    audio_get_next_codec_config
+    audio_get_next_codec_config,
+    audio_check_a2dp_ready
 };

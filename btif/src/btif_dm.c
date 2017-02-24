@@ -1061,7 +1061,7 @@ static void btif_dm_pin_req_evt(tBTA_DM_PIN_REQ *p_pin_req)
             check_cod(&bd_addr, COD_HID_POINTING))
         {
             /*  Check if this device can be auto paired  */
-            if (!interop_match_addr(INTEROP_DISABLE_AUTO_PAIRING, &bd_addr) &&
+            if (!interop_match_addr(INTEROP_DISABLE_AUTO_PAIRING, (bt_bdaddr_t *)&bd_addr) &&
                 !interop_match_name(INTEROP_DISABLE_AUTO_PAIRING, (const char *)bd_name.name) &&
                 (pairing_cb.autopair_attempts == 0))
             {
@@ -1079,7 +1079,7 @@ static void btif_dm_pin_req_evt(tBTA_DM_PIN_REQ *p_pin_req)
         else if (check_cod(&bd_addr, COD_HID_KEYBOARD) ||
                  check_cod(&bd_addr, COD_HID_COMBO))
         {
-            if ((interop_match_addr(INTEROP_KEYBOARD_REQUIRES_FIXED_PIN, &bd_addr) == TRUE) &&
+            if ((interop_match_addr(INTEROP_KEYBOARD_REQUIRES_FIXED_PIN, (bt_bdaddr_t *)&bd_addr) == TRUE) &&
                 (pairing_cb.autopair_attempts == 0))
             {
                 BTIF_TRACE_DEBUG("%s() Attempting auto pair", __FUNCTION__);
@@ -1291,6 +1291,23 @@ static void btif_dm_auth_cmpl_evt (tBTA_DM_AUTH_CMPL *p_auth_cmpl)
     // Skip SDP for certain  HID Devices
     if (p_auth_cmpl->success)
     {
+        // We could have received a new link key without going through the pairing flow.
+        // If so, we don't want to perform SDP or any other operations on the authenticated
+        // device. Also, make sure that the link key is not derived from secure LTK, because
+        // we will need to perform SDP in case of link key derivation to allow bond state change
+        // notification for the BR/EDR transport so that the subsequent BR/EDR connections
+        // to the remote can use the derived link key.
+        if ((bdcmp(p_auth_cmpl->bd_addr, pairing_cb.bd_addr) != 0) &&
+              (!pairing_cb.ble.is_penc_key_rcvd)) {
+            char address[32];
+            bt_bdaddr_t bt_bdaddr;
+
+            memcpy(bt_bdaddr.address, p_auth_cmpl->bd_addr,
+                  sizeof(bt_bdaddr.address));
+            bdaddr_to_string(&bt_bdaddr, address, sizeof(address));
+            LOG_INFO(LOG_TAG, "%s skipping SDP since we did not initiate pairing to %s.", __func__, address);
+            return;
+        }
 #if BLE_INCLUDED == TRUE
         btif_storage_set_remote_addr_type(&bd_addr, p_auth_cmpl->addr_type);
 #endif
@@ -1325,8 +1342,6 @@ static void btif_dm_auth_cmpl_evt (tBTA_DM_AUTH_CMPL *p_auth_cmpl)
             status = BT_STATUS_SUCCESS;
             state = BT_BOND_STATE_BONDED;
 
-            /* Trigger SDP on the device */
-            pairing_cb.sdp_attempts = 1;
 
 #if BLE_INCLUDED == TRUE
             BOOLEAN is_crosskey = FALSE;
@@ -1361,7 +1376,7 @@ static void btif_dm_auth_cmpl_evt (tBTA_DM_AUTH_CMPL *p_auth_cmpl)
         switch(p_auth_cmpl->fail_reason)
         {
             case HCI_ERR_PAGE_TIMEOUT:
-                if (interop_match_addr(INTEROP_AUTO_RETRY_PAIRING, &bd_addr)
+                if (interop_match_addr(INTEROP_AUTO_RETRY_PAIRING, (bt_bdaddr_t *)&bd_addr)
                     && pairing_cb.timeout_retries)
                 {
                     BTIF_TRACE_WARNING("%s() - Pairing timeout; retrying (%d) ...", __FUNCTION__, pairing_cb.timeout_retries);

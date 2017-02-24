@@ -191,6 +191,8 @@ void smp_send_app_cback(tSMP_CB *p_cb, tSMP_INT_DATA *p_data)
 
         if (callback_rc == SMP_SUCCESS)
         {
+            bt_bdaddr_t remote_bdaddr;
+            bdcpy(remote_bdaddr.address, p_cb->pairing_bda);
             switch (p_cb->cb_evt)
             {
                 case SMP_IO_CAP_REQ_EVT:
@@ -225,7 +227,7 @@ void smp_send_app_cback(tSMP_CB *p_cb, tSMP_INT_DATA *p_data)
                     if (!(p_cb->loc_auth_req & SMP_SC_SUPPORT_BIT)
                         || lmp_version_below(p_cb->pairing_bda, HCI_PROTO_VERSION_4_2)
                         || interop_match_addr(INTEROP_DISABLE_LE_SECURE_CONNECTIONS,
-                            (const bt_bdaddr_t *)&p_cb->pairing_bda))
+                            (const bt_bdaddr_t *)&remote_bdaddr))
                     {
                         p_cb->loc_auth_req &= ~SMP_KP_SUPPORT_BIT;
                         p_cb->local_i_key &= ~SMP_SEC_KEY_TYPE_LK;
