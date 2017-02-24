@@ -3735,6 +3735,9 @@ tBTA_AV_HNDL btif_av_get_av_hdl_from_idx(UINT8 idx)
 BOOLEAN btif_av_is_codec_offload_supported(int codec)
 {
     BOOLEAN ret = FALSE;
+    int retval;
+    char value[255] = "false";
+
     BTIF_TRACE_DEBUG("btif_av_is_codec_offload_supported = %s",dump_av_codec_name(codec));
     switch(codec)
     {
@@ -3746,6 +3749,11 @@ BOOLEAN btif_av_is_codec_offload_supported(int codec)
             break;
         case AAC:
             ret = btif_av_codec_offload.aac_offload;
+            retval = property_get("persist.bt.a2dp.aac_disable", value, "false");
+            BTIF_TRACE_DEBUG("%s: property_get: bt.a2dp.aac_disable: %s, retval: %d", __func__, value, retval);
+            if (strncmp(value, "true", 5) == 0) {
+                ret = FALSE;
+            }
             break;
         case APTXHD:
             ret = btif_av_codec_offload.aptxhd_offload;
