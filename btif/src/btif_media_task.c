@@ -177,7 +177,7 @@ enum {
 #define BTIF_MEDIA_TIME_TICK                     (20 * BTIF_MEDIA_NUM_TICK)
 #define A2DP_DATA_READ_POLL_MS    (BTIF_MEDIA_TIME_TICK / 2)
 #define BTIF_SINK_MEDIA_TIME_TICK_MS             (20 * BTIF_MEDIA_NUM_TICK)
-
+#define BTIF_REMOTE_START_TOUT 3000
 
 /* buffer pool */
 #define BTIF_MEDIA_AA_BUF_SIZE  BT_DEFAULT_BUFFER_SIZE
@@ -399,6 +399,7 @@ typedef struct
 #endif
     alarm_t *media_alarm;
     alarm_t *decode_alarm;
+    alarm_t *remote_start_alarm;
     btif_media_stats_t stats;
 //#ifdef BTA_AV_SPLIT_A2DP_ENABLED
     UINT8 max_bitpool;
@@ -499,6 +500,7 @@ void disconnect_a2dp_on_vendor_start_failure();
 BOOLEAN btif_media_send_vendor_selected_codec();
 BOOLEAN btif_media_send_vendor_transport_cfg();
 BOOLEAN btif_media_send_vendor_scmst_hdr();
+void btif_a2dp_remote_start_timer();
 #else
 #define btif_av_get_av_hdl_from_idx(idx) (0)
 #define btif_av_is_under_handoff() (0)
@@ -516,7 +518,7 @@ BOOLEAN btif_media_send_vendor_scmst_hdr();
 #define btif_media_send_vendor_selected_codec() (0)
 #define btif_media_send_vendor_transport_cfg()  (0)
 #define btif_media_send_vendor_scmst_hdr()      (0)
-
+#define btif_a2dp_remote_start_timer() (0)
 #endif
 
 
@@ -792,6 +794,13 @@ static void btif_recv_ctrl_data(void)
                 break;
             }
 
+            if (alarm_is_scheduled(btif_media_cb.remote_start_alarm))
+            {
+                APPL_TRACE_WARNING("%s: remote a2dp started, cancle remote start timer",
+                                   __func__);
+                alarm_free(btif_media_cb.remote_start_alarm);
+                btif_media_cb.remote_start_alarm = NULL;
+            }
             /* In Dual A2dp, first check for started state of stream
             * as we dont want to START again as while doing Handoff
             * the stack state will be started, so it is not needed
@@ -1521,6 +1530,11 @@ void btif_a2dp_stop_media_task(void)
     alarm_free(btif_media_cb.media_alarm);
     btif_media_cb.media_alarm = NULL;
 
+    if (btif_media_cb.remote_start_alarm != NULL)
+    {
+        alarm_free(btif_media_cb.remote_start_alarm);
+        btif_media_cb.remote_start_alarm = NULL;
+    }
     // Exit thread
     fixed_queue_free(btif_media_cmd_msg_queue, NULL);
     thread_post(worker_thread, btif_media_thread_cleanup, NULL);
@@ -1809,7 +1823,6 @@ BOOLEAN btif_a2dp_on_started(tBTA_AV_START *p_av, BOOLEAN pending_start, tBTA_AV
     return ack;
 }
 
-
 /*****************************************************************************
 **
 ** Function        btif_a2dp_ack_fail
@@ -1921,6 +1934,60 @@ void btif_a2dp_on_suspended(tBTA_AV_SUSPEND *p_av)
     btif_media_task_stop_aa_req();
 }
 
+/*****************************************************************************
+**
+** Function        btif_media_remote_start_alarm_cb
+**
+** Description     Remote start honor timer, if media is not started then
+**                 suspend AV
+** Returns
+**
+*******************************************************************************/
+static void btif_media_remote_start_alarm_cb(UNUSED_ATTR void *context) {
+  thread_post(worker_thread, btif_a2dp_remote_start_timer, NULL);
+}
+
+/*****************************************************************************
+**
+** Function        btif_a2dp_remote_start_timer
+**
+** Description     Suspend stream if media is not started for remote stream
+**                 start is honored
+** Returns
+**
+*******************************************************************************/
+void btif_a2dp_remote_start_timer()
+{
+    if (alarm_is_scheduled(btif_media_cb.remote_start_alarm))
+    {
+        alarm_free(btif_media_cb.remote_start_alarm);
+        btif_media_cb.remote_start_alarm = NULL;
+        APPL_TRACE_DEBUG("Suspend stream request to Av");
+        btif_dispatch_sm_event(BTIF_AV_SUSPEND_STREAM_REQ_EVT, NULL, 0);
+    }
+}
+
+/*****************************************************************************
+**
+** Function        btif_a2dp_on_remote_started
+**
+** Description
+**
+** Returns
+**
+*******************************************************************************/
+void btif_a2dp_on_remote_started()
+{
+    btif_media_cb.remote_start_alarm = alarm_new("btif.remote_start_task");
+
+    if (!btif_media_cb.remote_start_alarm)
+    {
+        APPL_TRACE_WARNING("%s:unable to allocate media alarm",__func__);
+        return;
+    }
+    alarm_set(btif_media_cb.remote_start_alarm, BTIF_REMOTE_START_TOUT,
+              btif_media_remote_start_alarm_cb, NULL);
+}
 
 /*****************************************************************************
 **
@@ -3662,6 +3729,11 @@ static void btif_media_task_aa_stop_tx(void)
     {
         APPL_TRACE_IMP("%s tx_started: %d, tx_stop_initiated: %d",
             __func__, btif_media_cb.tx_started, btif_media_cb.tx_stop_initiated);
+        if (btif_media_cb.remote_start_alarm != NULL)
+        {
+            alarm_free(btif_media_cb.remote_start_alarm);
+            btif_media_cb.remote_start_alarm = NULL;
+        }
         if (btif_media_cb.tx_started && !btif_media_cb.tx_stop_initiated)
             btif_media_send_vendor_stop();
         else

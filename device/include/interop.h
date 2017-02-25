@@ -139,6 +139,11 @@ typedef enum {
   // as supported version.
   INTEROP_ADV_PBAP_VER_1_1,
 
+  // Honor remote avdtp start, certain carkits send avdt_start along with avrcp
+  // passthrough cmd. If DUT suspends remote start and initiate avdtp start, remote
+  // suspends DUT's start request. So honor remote start for certain devices.
+  INTEROP_REMOTE_AVDTP_START,
+
   END_OF_INTEROP_LIST
 
 } interop_feature_t;
