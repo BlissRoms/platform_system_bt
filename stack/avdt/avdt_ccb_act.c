@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include <string.h>
+#include "btif_av_co.h"
 #include "bt_types.h"
 #include "bt_target.h"
 #include "bt_utils.h"
@@ -176,7 +177,7 @@ void avdt_ccb_hdl_discover_cmd(tAVDT_CCB *p_ccb, tAVDT_CCB_EVT *p_data)
         {
             /* if the codec type is AAC and if the peer address is blacklisted */
             if (p_scb->cs.cfg.codec_info[AVDT_CODEC_TYPE_INDEX] == A2D_MEDIA_CT_M24 &&
-                   interop_match_addr(INTEROP_DISABLE_AAC_CODEC, &remote_bdaddr)) {
+                   !bta_av_co_audio_is_aac_enabled(&remote_bdaddr)) {
                 AVDT_TRACE_EVENT("%s: skipping AAC advertise\n", __func__);
                 continue;
             }
