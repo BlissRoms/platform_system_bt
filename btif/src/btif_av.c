@@ -2302,9 +2302,25 @@ static void a2dp_offload_codec_cap_parser(const char *value)
 {
     char *tok = NULL;
     char *tmp_token = NULL;
+    int size = 0;
+    char *tmp_copy_buf = NULL;
+    if (value == NULL)
+    {
+        BTIF_TRACE_ERROR("%s: Offload String is NULL",__func__);
+        return;
+    }
+    size = strlen(value) + 1;
+    tmp_copy_buf = (char *) osi_malloc (size);
+    if (tmp_copy_buf == NULL)
+    {
+        BTIF_TRACE_ERROR("%s: Memorey allocation failed",__func__);
+        return;
+    }
+    memset(tmp_copy_buf, 0, size);
+    memcpy(tmp_copy_buf, value, size - 1);
     /* Fix for below Klockwork Issue
      * 'strtok' has been deprecated; replace it with a safe function. */
-    tok = strtok_r((char*)value, "-", &tmp_token);
+    tok = strtok_r((char*)tmp_copy_buf, "-", &tmp_token);
     while (tok != NULL)
     {
         if (strcmp(tok,"sbc") == 0)
@@ -2329,6 +2345,7 @@ static void a2dp_offload_codec_cap_parser(const char *value)
         }
         tok = strtok_r(NULL, "-", &tmp_token);
     };
+    osi_free_and_reset((void **) &tmp_copy_buf);
 }
 
 /******************************************************************************
