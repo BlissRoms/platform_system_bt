@@ -1934,6 +1934,7 @@ void btif_a2dp_on_suspended(tBTA_AV_SUSPEND *p_av)
     btif_media_task_stop_aa_req();
 }
 
+#ifdef BTA_AV_SPLIT_A2DP_ENABLED
 /*****************************************************************************
 **
 ** Function        btif_media_remote_start_alarm_cb
@@ -1988,7 +1989,7 @@ void btif_a2dp_on_remote_started()
     alarm_set(btif_media_cb.remote_start_alarm, BTIF_REMOTE_START_TOUT,
               btif_media_remote_start_alarm_cb, NULL);
 }
-
+#endif
 /*****************************************************************************
 **
 ** Function        btif_a2dp_on_offload_started
