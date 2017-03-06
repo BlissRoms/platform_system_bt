@@ -21,7 +21,11 @@ LOCAL_SRC_FILES := $(LOCAL_MODULE)
 include $(BUILD_PREBUILT)
 
 include $(CLEAR_VARS)
+ifneq ($(TARGET_SUPPORTS_WEARABLES),true)
 LOCAL_PATH := vendor/qcom/opensource/bluetooth/system_bt_ext/conf/
+else
+LOCAL_PATH := device/qcom/msm8909w/opensource/bluetooth/system_bt_ext/conf/
+endif
 LOCAL_MODULE := interop_database.conf
 LOCAL_MODULE_CLASS := ETC
 LOCAL_MODULE_PATH := $(TARGET_OUT)/etc/bluetooth

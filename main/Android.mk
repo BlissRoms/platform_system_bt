@@ -27,8 +27,13 @@ LOCAL_SRC_FILES+= \
 	../udrv/ulinux/uipc.c
 
 ifeq ($(BOARD_USES_WIPOWER),true)
+ifneq ($(TARGET_SUPPORTS_WEARABLES),true)
 LOCAL_SRC_FILES += \
-	../../../vendor/qcom/opensource/bluetooth/wipower-host/core/src/wipower.c
+       ../../../vendor/qcom/opensource/bluetooth/wipower-host/core/src/wipower.c
+else
+LOCAL_SRC_FILES += \
+       ../../../device/qcom/msm8909w/opensource/bluetooth/wipower-host/core/src/wipower.c
+endif
 endif
 
 LOCAL_C_INCLUDES+= . \
@@ -62,9 +67,15 @@ LOCAL_C_INCLUDES+= . \
     $(call include-path-for, audio-utils)
 
 ifeq ($(BOARD_USES_WIPOWER),true)
+ifneq ($(TARGET_SUPPORTS_WEARABLES),true)
 LOCAL_C_INCLUDES+= \
-	vendor/qcom/opensource/bluetooth/hal/include \
-	vendor/qcom/opensource/bluetooth/wipower-host/core/include
+       vendor/qcom/opensource/bluetooth/hal/include \
+       vendor/qcom/opensource/bluetooth/wipower-host/core/include
+else
+LOCAL_C_INCLUDES+= \
+       device/qcom/msm8909w/opensource/bluetooth/hal/include \
+       device/qcom/msm8909w/opensource/bluetooth/wipower-host/core/include
+endif
 endif
 
 LOCAL_SHARED_LIBRARIES := \

@@ -33,9 +33,15 @@ LOCAL_C_INCLUDES:= \
                    $(LOCAL_PATH)/../bta/sys \
                    $(LOCAL_PATH)/../utils/include \
                    $(LOCAL_PATH)/../ \
-                   vendor/qcom/opensource/bluetooth/system_bt_ext \
                    $(bluetooth_C_INCLUDES)
 
+ifneq ($(TARGET_SUPPORTS_WEARABLES),true)
+LOCAL_C_INCLUDES+= \
+                   vendor/qcom/opensource/bluetooth/system_bt_ext
+else
+LOCAL_C_INCLUDES+= \
+                   device/qcom/msm8909w/opensource/bluetooth/system_bt_ext
+endif
 LOCAL_SRC_FILES:= \
     ./a2dp/a2d_api.c \
     ./a2dp/a2d_sbc.c \
