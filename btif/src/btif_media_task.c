@@ -486,6 +486,7 @@ extern BOOLEAN btif_av_get_multicast_state();
 #ifdef BTA_AV_SPLIT_A2DP_ENABLED
 extern tBTA_AV_HNDL btif_av_get_av_hdl_from_idx(UINT8 idx);
 extern BOOLEAN btif_av_is_under_handoff();
+extern BOOLEAN btif_av_is_device_disconnecting();
 extern void btif_av_reset_reconfig_flag();
 void btif_media_send_reset_vendor_state();
 void btif_media_on_start_vendor_command();
@@ -504,6 +505,7 @@ void btif_a2dp_remote_start_timer();
 #else
 #define btif_av_get_av_hdl_from_idx(idx) (0)
 #define btif_av_is_under_handoff() (0)
+#define btif_av_is_device_disconnecting() (0)
 #define btif_av_reset_reconfig_flag() (0)
 #define btif_media_send_reset_vendor_state() (0)
 #define btif_media_on_start_vendor_command() (0)
@@ -882,11 +884,12 @@ static void btif_recv_ctrl_data(void)
             if (bt_split_a2dp_enabled && reconfig_a2dp)
             {
                 APPL_TRACE_DEBUG("Suspend called due to reconfig");
-                if (btif_av_is_under_handoff())
+                if (btif_av_is_under_handoff() && !btif_av_is_device_disconnecting())
                 {
                     APPL_TRACE_DEBUG("AV is under handoff: do nothing");
                 }
-                else if(btif_media_cb.tx_start_initiated)
+                //else if(btif_media_cb.tx_start_initiated || btif_av_is_device_disconnecting())
+                else
                 {
                    APPL_TRACE_DEBUG("VS exchange started: ACK suspend, cmd_start will block");
                    a2dp_cmd_acknowledge(A2DP_CTRL_ACK_SUCCESS);
