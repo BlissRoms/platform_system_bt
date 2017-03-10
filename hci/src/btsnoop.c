@@ -93,9 +93,11 @@ static future_t *start_up(void) {
 
   module_started = true;
   stack_config->get_btsnoop_ext_options(&hci_ext_dump_enabled, &btsnoop_conf_from_file);
+#ifdef BLUEDROID_DEBUG
   if (btsnoop_conf_from_file == false) {
     hci_ext_dump_enabled = true;
   }
+#endif
   update_logging();
 
   return NULL;
@@ -181,8 +183,9 @@ static uint64_t btsnoop_timestamp(void) {
 }
 
 static void update_logging() {
+  bool btsnoop_log_output = stack_config->get_btsnoop_turned_on();
   bool should_log = module_started &&
-    (logging_enabled_via_api || stack_config->get_btsnoop_turned_on() || hci_ext_dump_enabled);
+    (logging_enabled_via_api || btsnoop_log_output || hci_ext_dump_enabled);
 
   if (should_log == is_logging)
     return;
@@ -190,10 +193,15 @@ static void update_logging() {
   is_logging = should_log;
   if (should_log) {
     btsnoop_net_open();
-
-    if (hci_ext_dump_enabled == true) {
-      START_SNOOP_LOGGING();
+#ifdef BLUEDROID_DEBUG
+    if(!btsnoop_log_output)
+#endif
+    {
+      if (logging_enabled_via_api || hci_ext_dump_enabled == true) {
+        START_SNOOP_LOGGING();
+      }
     }
+
     const char *log_path = stack_config->get_btsnoop_log_path();
 
     // Save the old log if configured to do so

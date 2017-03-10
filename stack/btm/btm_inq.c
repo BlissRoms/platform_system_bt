@@ -2062,6 +2062,8 @@ void btm_process_inq_results (UINT8 *p, UINT8 inq_res_mode)
             else
                 p_eir_data = NULL;
 
+            /* Set EIR data length */
+            p_cur->adv_data_len = HCI_EXT_INQ_RESPONSE_LEN;
             /* If a callback is registered, call it with the results */
             if (p_inq_results_cb)
                 (p_inq_results_cb)((tBTM_INQ_RESULTS *) p_cur, p_eir_data);

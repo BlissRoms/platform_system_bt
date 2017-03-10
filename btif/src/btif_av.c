@@ -38,7 +38,8 @@
 #include "bt_common.h"
 #include "osi/include/allocator.h"
 #include <cutils/properties.h>
-
+#include "device/include/interop.h"
+#include "btif_storage.h"
 /*****************************************************************************
 **  Constants & Macros
 ******************************************************************************/
@@ -1221,9 +1222,31 @@ static BOOLEAN btif_av_state_opened_handler(btif_sm_event_t event, void *p_data,
                         }
                         else
                         {
-                            BTIF_TRACE_DEBUG("%s: trigger suspend as remote initiated!!",
-                                __FUNCTION__);
-                            btif_dispatch_sm_event(BTIF_AV_SUSPEND_STREAM_REQ_EVT, NULL, 0);
+                            bt_property_t prop_name;
+                            bt_bdname_t bdname;
+                            BOOLEAN remote_name = FALSE;
+                            BTIF_STORAGE_FILL_PROPERTY(&prop_name, BT_PROPERTY_BDNAME,
+                                                       sizeof(bt_bdname_t), &bdname);
+                            if (btif_storage_get_remote_device_property(&btif_av_cb[index].peer_bda, &prop_name)
+                                                                        == BT_STATUS_SUCCESS)
+                            {
+                                remote_name = TRUE;
+                            }
+                            if ((bt_split_a2dp_enabled &&
+                                (!interop_match_addr(INTEROP_REMOTE_AVDTP_START, &btif_av_cb[index].peer_bda) ||
+                                (!remote_name || (remote_name &&
+                                 !interop_match_name(INTEROP_REMOTE_AVDTP_START, (const char *)bdname.name))))) ||
+                                !bt_split_a2dp_enabled)
+                            {
+                                BTIF_TRACE_DEBUG("%s: trigger suspend as remote initiated!!",
+                                    __FUNCTION__);
+                                btif_dispatch_sm_event(BTIF_AV_SUSPEND_STREAM_REQ_EVT, NULL, 0);
+                            }
+                            else
+                            {
+                                BTIF_TRACE_DEBUG("%s: honor remote started for BL device",__FUNCTION__);
+                                btif_a2dp_on_remote_started();
+                            }
                         }
                     }
                 }
@@ -2279,9 +2302,25 @@ static void a2dp_offload_codec_cap_parser(const char *value)
 {
     char *tok = NULL;
     char *tmp_token = NULL;
+    int size = 0;
+    char *tmp_copy_buf = NULL;
+    if (value == NULL)
+    {
+        BTIF_TRACE_ERROR("%s: Offload String is NULL",__func__);
+        return;
+    }
+    size = strlen(value) + 1;
+    tmp_copy_buf = (char *) osi_malloc (size);
+    if (tmp_copy_buf == NULL)
+    {
+        BTIF_TRACE_ERROR("%s: Memorey allocation failed",__func__);
+        return;
+    }
+    memset(tmp_copy_buf, 0, size);
+    memcpy(tmp_copy_buf, value, size - 1);
     /* Fix for below Klockwork Issue
      * 'strtok' has been deprecated; replace it with a safe function. */
-    tok = strtok_r((char*)value, "-", &tmp_token);
+    tok = strtok_r((char*)tmp_copy_buf, "-", &tmp_token);
     while (tok != NULL)
     {
         if (strcmp(tok,"sbc") == 0)
@@ -2306,6 +2345,7 @@ static void a2dp_offload_codec_cap_parser(const char *value)
         }
         tok = strtok_r(NULL, "-", &tmp_token);
     };
+    osi_free_and_reset((void **) &tmp_copy_buf);
 }
 
 /******************************************************************************
@@ -3695,6 +3735,9 @@ tBTA_AV_HNDL btif_av_get_av_hdl_from_idx(UINT8 idx)
 BOOLEAN btif_av_is_codec_offload_supported(int codec)
 {
     BOOLEAN ret = FALSE;
+    int retval;
+    char value[255] = "false";
+
     BTIF_TRACE_DEBUG("btif_av_is_codec_offload_supported = %s",dump_av_codec_name(codec));
     switch(codec)
     {
@@ -3706,6 +3749,11 @@ BOOLEAN btif_av_is_codec_offload_supported(int codec)
             break;
         case AAC:
             ret = btif_av_codec_offload.aac_offload;
+            retval = property_get("persist.bt.a2dp.aac_disable", value, "false");
+            BTIF_TRACE_DEBUG("%s: property_get: bt.a2dp.aac_disable: %s, retval: %d", __func__, value, retval);
+            if (strncmp(value, "true", 5) == 0) {
+                ret = FALSE;
+            }
             break;
         case APTXHD:
             ret = btif_av_codec_offload.aptxhd_offload;

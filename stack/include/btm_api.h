@@ -629,6 +629,7 @@ typedef struct
     INT8        rssi;       /* Set to BTM_INQ_RES_IGNORE_RSSI if  not valid */
     UINT32      eir_uuid[BTM_EIR_SERVICE_ARRAY_SIZE];
     BOOLEAN     eir_complete_list;
+    UINT16      adv_data_len;
 #if (BLE_INCLUDED == TRUE)
     tBT_DEVICE_TYPE         device_type;
     UINT8       inq_result_type;
@@ -642,7 +643,6 @@ typedef struct
     UINT16      periodic_adv_int;
     UINT8       direct_addr_type;
     BD_ADDR     direct_bda;
-    UINT16      adv_data_len;
 #endif
 } tBTM_INQ_RESULTS;
 

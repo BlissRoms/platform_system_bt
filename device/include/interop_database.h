@@ -139,6 +139,11 @@ static const interop_addr_entry_t interop_addr_database[] = {
   {{{0x28, 0xa1, 0x83,      0,0,0}}, 3, INTEROP_DISABLE_AAC_CODEC},
   // Parrot Zik2.0
   {{{0xA0, 0x14, 0x3D,      0,0,0}}, 3, INTEROP_DISABLE_AAC_CODEC},
+
+  // Porsche, Audi Q7
+  {{{0xbc, 0x30, 0x7e,      0,0,0}}, 3, INTEROP_REMOTE_AVDTP_START},
+  // Audi
+  {{{0xa4, 0x08, 0xea,      0,0,0}}, 3, INTEROP_REMOTE_AVDTP_START},
 };
 
 typedef struct {
@@ -179,6 +184,10 @@ static const interop_name_entry_t interop_name_database[] = {
   // HID Moto KZ500 Keyboard - Problematic SDP digitizer descriptor
   {"Motorola Keyboard KZ500", 23, INTEROP_REMOVE_HID_DIG_DESCRIPTOR},
   {"Motorola Keyboard KZ500 v122", 28, INTEROP_REMOVE_HID_DIG_DESCRIPTOR},
+
+  // Honor remote's avdtp start request
+  {"Audi",    4, INTEROP_REMOTE_AVDTP_START},
+  {"Porsche", 7, INTEROP_REMOTE_AVDTP_START},
 };
 
 typedef struct {

@@ -22,6 +22,8 @@
 
 
 #include "bta_hh_int.h"
+#include "device/include/interop.h"
+#include "device/include/interop_config.h"
 
 /* if SSR max latency is not defined by remote device, set the default value
    as half of the link supervision timeout */
@@ -49,20 +51,6 @@ static const UINT8 bta_hh_mod_key_mask[BTA_HH_MOD_MAX_KEY] =
     BTA_HH_KB_GUI_MASK
 };
 
-/* hid_blacklist_addr_prefix_for_ssr & hid_ssr_max_lat_list_for_iot are used
-   to fix IOP issues of sniff subrate feature */
-static const UINT8 hid_blacklist_addr_prefix_for_ssr[][3] = {
-    {0x00, 0x1B, 0xDC} // ISSC
-    ,{0xdc, 0x2c, 0x26} // BORND
-    ,{0x54, 0x46, 0x6B} // JW MT002
-};
-
-static const UINT16 hid_ssr_max_lat_list_for_iot[] = {
-    0x0012 // ISSC
-    ,BTA_HH_SSR_MAX_LATENCY_ZERO // BORND
-    ,BTA_HH_SSR_DISABLE_SSR // JW MT002
-};
-
 
 /*******************************************************************************
 **      Function       blacklist_adjust_sniff_subrate
@@ -75,17 +63,12 @@ static const UINT16 hid_ssr_max_lat_list_for_iot[] = {
 static void blacklist_adjust_sniff_subrate(BD_ADDR peer_dev, UINT16 *ssr_max_lat)
 {
     UINT16 old_ssr_max_lat = *ssr_max_lat;
-    const int blacklist_size =
-            sizeof(hid_blacklist_addr_prefix_for_ssr)/sizeof(hid_blacklist_addr_prefix_for_ssr[0]);
-    for (int i = 0; i < blacklist_size; i++) {
-        if (hid_blacklist_addr_prefix_for_ssr[i][0] == peer_dev[0] &&
-            hid_blacklist_addr_prefix_for_ssr[i][1] == peer_dev[1] &&
-            hid_blacklist_addr_prefix_for_ssr[i][2] == peer_dev[2]) {
-            *ssr_max_lat = hid_ssr_max_lat_list_for_iot[i];
-            APPL_TRACE_WARNING("%s: Device in blacklist for ssr, max latency changed "
-                "from %d to %d", __func__, old_ssr_max_lat, *ssr_max_lat);
-            return;
-        }
+    bt_bdaddr_t remote_bdaddr;
+    bdcpy(remote_bdaddr.address, peer_dev);
+    if (interop_match_addr_get_max_lat(INTEROP_UPDATE_HID_SSR_MAX_LAT, &remote_bdaddr,
+        ssr_max_lat)) {
+        APPL_TRACE_WARNING("%s: Device in blacklist for ssr, max latency changed "
+            "from %d to %d", __func__, old_ssr_max_lat, *ssr_max_lat);
     }
 }
 
