@@ -236,11 +236,13 @@ BOOLEAN btif_av_is_codec_offload_supported(int codec);
 int btif_av_get_current_playing_dev_idx();
 BOOLEAN btif_av_is_under_handoff();
 void btif_av_reset_reconfig_flag();
+BOOLEAN btif_av_is_device_disconnecting();
 #else
 #define btif_av_is_codec_offload_supported(codec) (0)
 #define btif_av_get_current_playing_dev_idx() (0)
 #define btif_av_is_under_handoff() (0)
 #define btif_av_reset_reconfig_flag() (0)
+#define btif_av_is_device_disconnecting() (0)
 #endif
 
 const char *dump_av_sm_state_name(btif_av_state_t state)
@@ -3790,12 +3792,31 @@ BOOLEAN btif_av_is_under_handoff()
              * initiated locally then return false, otherwise wait till the suspend cfm
              * is received from the remote.
              */
+            BTIF_TRACE_DEBUG("AV is under handoff");
             return TRUE;
         }
     }
     return FALSE;
 }
 
+BOOLEAN btif_av_is_device_disconnecting()
+{
+    int i;
+    btif_sm_state_t state = BTIF_AV_STATE_IDLE;
+    BTIF_TRACE_DEBUG("btif_av_is_device_disconnecting");
+    for (i = 0; i < btif_max_av_clients; i++)
+    {
+        state = btif_sm_get_state(btif_av_cb[i].sm_handle);
+        BTIF_TRACE_DEBUG("%s: state = %d",__func__,state);
+        if ((btif_av_cb[i].dual_handoff &&
+            state == BTIF_AV_STATE_CLOSING))
+        {
+            BTIF_TRACE_DEBUG("Device disconnecting");
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
 void btif_av_reset_reconfig_flag()
 {
     BTIF_TRACE_DEBUG("%s",__func__);
