@@ -477,7 +477,7 @@ BOOLEAN btif_media_task_clear_track(void);
 
 static void btif_media_task_aa_handle_timer(UNUSED_ATTR void *context);
 static void btif_media_task_avk_handle_timer(UNUSED_ATTR void *context);
-extern BOOLEAN btif_hf_is_call_idle();
+extern BOOLEAN btif_hf_is_call_vr_idle();
 extern int btif_get_latest_playing_device_idx();
 extern tBTA_AV_HNDL btif_av_get_playing_device_hdl();
 extern int btif_get_num_playing_devices();
@@ -486,6 +486,7 @@ extern BOOLEAN btif_av_get_multicast_state();
 #ifdef BTA_AV_SPLIT_A2DP_ENABLED
 extern tBTA_AV_HNDL btif_av_get_av_hdl_from_idx(UINT8 idx);
 extern BOOLEAN btif_av_is_under_handoff();
+extern BOOLEAN btif_av_is_device_disconnecting();
 extern void btif_av_reset_reconfig_flag();
 void btif_media_send_reset_vendor_state();
 void btif_media_on_start_vendor_command();
@@ -504,6 +505,7 @@ void btif_a2dp_remote_start_timer();
 #else
 #define btif_av_get_av_hdl_from_idx(idx) (0)
 #define btif_av_is_under_handoff() (0)
+#define btif_av_is_device_disconnecting() (0)
 #define btif_av_reset_reconfig_flag() (0)
 #define btif_media_send_reset_vendor_state() (0)
 #define btif_media_on_start_vendor_command() (0)
@@ -741,7 +743,7 @@ static void btif_recv_ctrl_data(void)
                 a2dp_cmd_acknowledge(A2DP_CTRL_ACK_FAILURE);
                 return;
             }
-            if (bt_split_a2dp_enabled && !btif_hf_is_call_idle())
+            if (bt_split_a2dp_enabled && !btif_hf_is_call_vr_idle())
             {
                 a2dp_cmd_acknowledge(A2DP_CTRL_ACK_INCALL_FAILURE);
                 return;
@@ -776,7 +778,7 @@ static void btif_recv_ctrl_data(void)
             /* Don't sent START request to stack while we are in call.
                Some headsets like the Sony MW600, don't allow AVDTP START
                in call and respond BAD_STATE. */
-            if (!btif_hf_is_call_idle())
+            if (!btif_hf_is_call_vr_idle())
             {
                 a2dp_cmd_acknowledge(A2DP_CTRL_ACK_INCALL_FAILURE);
                 break;
@@ -882,11 +884,12 @@ static void btif_recv_ctrl_data(void)
             if (bt_split_a2dp_enabled && reconfig_a2dp)
             {
                 APPL_TRACE_DEBUG("Suspend called due to reconfig");
-                if (btif_av_is_under_handoff())
+                if (btif_av_is_under_handoff() && !btif_av_is_device_disconnecting())
                 {
                     APPL_TRACE_DEBUG("AV is under handoff: do nothing");
                 }
-                else if(btif_media_cb.tx_start_initiated)
+                //else if(btif_media_cb.tx_start_initiated || btif_av_is_device_disconnecting())
+                else
                 {
                    APPL_TRACE_DEBUG("VS exchange started: ACK suspend, cmd_start will block");
                    a2dp_cmd_acknowledge(A2DP_CTRL_ACK_SUCCESS);
@@ -2293,14 +2296,20 @@ static void btif_media_thread_handle_cmd(fixed_queue_t *queue, UNUSED_ATTR void 
         btif_media_cb.tx_enc_update_initiated = FALSE;
         break;
     case BTIF_MEDIA_START_VS_CMD:
-        if (!btif_media_cb.tx_started
+        if (!btif_hf_is_call_vr_idle())
+        {
+            APPL_TRACE_IMP("ignore VS start request as Call is not idle");
+        }
+        else if (!btif_media_cb.tx_started
              && (!btif_media_cb.tx_start_initiated || btif_media_cb.tx_enc_update_initiated))
         {
             btif_a2dp_encoder_update();
             btif_media_start_vendor_command();
         }
         else
+        {
             APPL_TRACE_IMP("ignore VS start request");
+        }
         break;
     case BTIF_MEDIA_STOP_VS_CMD:
         if (btif_media_cb.tx_started && !btif_media_cb.tx_stop_initiated)

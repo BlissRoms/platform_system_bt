@@ -213,7 +213,7 @@ extern void btif_rc_clear_priority(BD_ADDR address);
 extern void btif_rc_send_pause_command();
 extern UINT16 btif_dm_get_br_edr_links();
 extern UINT16 btif_dm_get_le_links();
-extern UINT16 btif_hf_is_call_idle();
+extern UINT16 btif_hf_is_call_vr_idle();
 
 extern fixed_queue_t *btu_general_alarm_queue;
 
@@ -236,11 +236,13 @@ BOOLEAN btif_av_is_codec_offload_supported(int codec);
 int btif_av_get_current_playing_dev_idx();
 BOOLEAN btif_av_is_under_handoff();
 void btif_av_reset_reconfig_flag();
+BOOLEAN btif_av_is_device_disconnecting();
 #else
 #define btif_av_is_codec_offload_supported(codec) (0)
 #define btif_av_get_current_playing_dev_idx() (0)
 #define btif_av_is_under_handoff() (0)
 #define btif_av_reset_reconfig_flag() (0)
+#define btif_av_is_device_disconnecting() (0)
 #endif
 
 const char *dump_av_sm_state_name(btif_av_state_t state)
@@ -1170,7 +1172,7 @@ static BOOLEAN btif_av_state_opened_handler(btif_sm_event_t event, void *p_data,
                 return TRUE;
 
             /* if remote tries to start a2dp when call is in progress, suspend it right away */
-            if ((!(btif_av_cb[index].flags & BTIF_AV_FLAG_PENDING_START)) && (!btif_hf_is_call_idle())) {
+            if ((!(btif_av_cb[index].flags & BTIF_AV_FLAG_PENDING_START)) && (!btif_hf_is_call_vr_idle())) {
                 BTIF_TRACE_EVENT("%s: trigger suspend as call is in progress!!", __FUNCTION__);
                 btif_av_cb[index].flags &= ~BTIF_AV_FLAG_PENDING_START;
                 btif_sm_change_state(btif_av_cb[index].sm_handle, BTIF_AV_STATE_STARTED);
@@ -3790,12 +3792,31 @@ BOOLEAN btif_av_is_under_handoff()
              * initiated locally then return false, otherwise wait till the suspend cfm
              * is received from the remote.
              */
+            BTIF_TRACE_DEBUG("AV is under handoff");
             return TRUE;
         }
     }
     return FALSE;
 }
 
+BOOLEAN btif_av_is_device_disconnecting()
+{
+    int i;
+    btif_sm_state_t state = BTIF_AV_STATE_IDLE;
+    BTIF_TRACE_DEBUG("btif_av_is_device_disconnecting");
+    for (i = 0; i < btif_max_av_clients; i++)
+    {
+        state = btif_sm_get_state(btif_av_cb[i].sm_handle);
+        BTIF_TRACE_DEBUG("%s: state = %d",__func__,state);
+        if ((btif_av_cb[i].dual_handoff &&
+            state == BTIF_AV_STATE_CLOSING))
+        {
+            BTIF_TRACE_DEBUG("Device disconnecting");
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
 void btif_av_reset_reconfig_flag()
 {
     BTIF_TRACE_DEBUG("%s",__func__);
