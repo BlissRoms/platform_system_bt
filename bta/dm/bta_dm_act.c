@@ -2503,8 +2503,8 @@ static void bta_dm_inq_results_cb (tBTM_INQ_RESULTS *p_inq, UINT8 *p_eir)
     result.inq_res.inq_result_type  = p_inq->inq_result_type;
     result.inq_res.device_type      = p_inq->device_type;
     result.inq_res.flag             = p_inq->flag;
-    result.inq_res.adv_data_len     = p_inq->adv_data_len;
 #endif
+    result.inq_res.adv_data_len     = p_inq->adv_data_len;
 
     /* application will parse EIR to find out remote device name */
     result.inq_res.p_eir = p_eir;

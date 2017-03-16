@@ -957,7 +957,7 @@ static void search_devices_copy_cb(UINT16 event, char *p_dest, char *p_src)
             if (p_src_data->inq_res.p_eir)
             {
                 p_dest_data->inq_res.p_eir = (UINT8 *)(p_dest + sizeof(tBTA_DM_SEARCH));
-                memcpy(p_dest_data->inq_res.p_eir, p_src_data->inq_res.p_eir, HCI_EXT_INQ_RESPONSE_LEN);
+                memcpy(p_dest_data->inq_res.p_eir, p_src_data->inq_res.p_eir, p_src_data->inq_res.adv_data_len);
             }
         }
         break;
@@ -2409,7 +2409,7 @@ static void bte_search_devices_evt(tBTA_DM_SEARCH_EVT event, tBTA_DM_SEARCH *p_d
         case BTA_DM_INQ_RES_EVT:
         {
             if (p_data && p_data->inq_res.p_eir)
-                param_len += HCI_EXT_INQ_RESPONSE_LEN;
+                param_len += p_data->inq_res.adv_data_len;
         }
         break;
 
