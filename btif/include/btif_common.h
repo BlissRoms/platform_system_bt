@@ -138,6 +138,19 @@ enum
     BTIF_HF_CLIENT_CB_AUDIO_CONNECTING, /* AUDIO connect has been sent to BTA successfully */
 };
 
+/*
+ * Logger preference, based on which the Bluetooth logging is
+ * enabled.
+ */
+#ifdef BLUEDROID_DEBUG
+typedef enum {
+    CONFIG_PREFERENCE_FALSE = 0,
+    CONFIG_PREFERENCE_TRUE,
+    DEV_OPT_PREFERENCE,
+    NO_PREFERENCE,
+} logging_preference_t;
+#endif
+
 /* Macro definitions for BD ADDR persistence */
 
 /**

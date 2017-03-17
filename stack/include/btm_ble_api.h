@@ -375,7 +375,8 @@ typedef UINT8   tBTM_BLE_AD_TYPE;
 /*  Preferred maximum number of microseconds that the local Controller
     should use to transmit a single Link Layer Data Channel PDU. */
 #define BTM_BLE_DATA_TX_TIME_MIN     0x0148
-#define BTM_BLE_DATA_TX_TIME_MAX     0x0848
+#define BTM_BLE_DATA_TX_TIME_MAX_LEGACY     0x0848
+#define BTM_BLE_DATA_TX_TIME_MAX            0x4290
 
 /* adv tx power level */
 #define BTM_BLE_ADV_TX_POWER_MIN        0           /* minimum tx power */

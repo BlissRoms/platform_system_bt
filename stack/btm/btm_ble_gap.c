@@ -2480,8 +2480,6 @@ void btm_ble_cache_adv_data(tBTM_INQ_RESULTS *p_cur, UINT8 data_len, UINT8 *p, U
         }
     }
 
-    p_adv_data_cache = &p_le_inq_cb->adv_data_cache[p_le_inq_cb->adv_len];
-
     /* cache adv report/scan response data ,check for only legacy adv's scan rsp evt*/
     if (((!extended && (evt_type != BTM_BLE_SCAN_RSP_EVT)) ||
         (extended && ((evt_type & BTM_BLE_EXT_LEGACY_ADV_MASK) == BTM_BLE_EXT_LEGACY_ADV_MASK) &&
@@ -2490,6 +2488,8 @@ void btm_ble_cache_adv_data(tBTM_INQ_RESULTS *p_cur, UINT8 data_len, UINT8 *p, U
         p_le_inq_cb->adv_len = 0;
         memset(p_le_inq_cb->adv_data_cache, 0, sizeof(UINT8) * (BTM_BLE_CACHE_ADV_DATA_MAX));
     }
+
+    p_adv_data_cache = &p_le_inq_cb->adv_data_cache[p_le_inq_cb->adv_len];
 
     if(data_len > 0)
     {

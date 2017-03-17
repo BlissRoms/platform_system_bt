@@ -137,6 +137,13 @@ extern const btsmp_interface_t *btif_smp_get_interface(void);
 extern const btgap_interface_t *btif_gap_get_interface(void);
 #endif
 
+extern void set_logging_pref(uint16_t pref_val);
+#ifdef BLUEDROID_DEBUG
+extern void enable_bt_logger_debug(bool);
+#else
+extern void enable_bt_logger(bool);
+#endif
+
 /************************************************************************************
 **  Functions
 ************************************************************************************/
@@ -149,20 +156,6 @@ static bool is_profile(const char *p1, const char *p2) {
   assert(p1);
   assert(p2);
   return strlen(p1) == strlen(p2) && strncmp(p1, p2, strlen(p2)) == 0;
-}
-
-void get_logger_config_value()
-{
-  bool hci_ext_dump_enabled = false;
-  bool btsnoop_conf_from_file = false;
-  stack_config_get_interface()->get_btsnoop_ext_options(&hci_ext_dump_enabled, &btsnoop_conf_from_file);
-
-  /* ToDo: Chnage dependency to work on one config option*/
-  if(!btsnoop_conf_from_file)
-    hci_ext_dump_enabled = true;
-
-  if(hci_ext_dump_enabled)
-        bt_logger_enabled = true;
 }
 
 /*****************************************************************************
@@ -183,10 +176,6 @@ static int init(bt_callbacks_t *callbacks) {
 
   bt_hal_cbacks = callbacks;
   stack_manager_get_interface()->init_stack();
-  get_logger_config_value();
-
-  if(bt_logger_enabled)
-    property_set("bluetooth.startbtlogger", "true");
   btif_debug_init();
   return BT_STATUS_SUCCESS;
 }
@@ -560,6 +549,12 @@ int config_hci_snoop_log(uint8_t enable)
 
     if (!interface_ready())
         return BT_STATUS_NOT_READY;
+
+#ifdef BLUEDROID_DEBUG
+    enable_bt_logger_debug(enable);
+#else
+    enable_bt_logger(enable);
+#endif
 
     btsnoop_get_interface()->set_api_wants_to_log(enable);
     controller_get_static_interface()->enable_soc_logging(enable);

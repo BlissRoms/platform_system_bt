@@ -301,9 +301,11 @@ BOOLEAN btif_a2dp_on_started(tBTA_AV_START *p_av, BOOLEAN pending_start, tBTA_AV
 #ifdef BTA_AV_SPLIT_A2DP_ENABLED
 void btif_media_on_stop_vendor_command();
 void btif_media_send_reset_vendor_state();
+void btif_a2dp_on_remote_started();
 #else
 #define btif_media_on_stop_vendor_command() (0)
 #define btif_media_send_reset_vendor_state() (0)
+#define btif_a2dp_on_remote_started() (0)
 #endif
 void btif_a2dp_ack_fail(void);
 void btif_a2dp_on_stop_req(void);
