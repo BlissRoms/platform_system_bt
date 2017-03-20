@@ -75,7 +75,8 @@
 #define A2D_AAC_IE_BIT_RATE                    0x007FFFFF
 
 
-#define BTIF_AAC_DEFAULT_BIT_RATE 0x000409B6
+#define BTIF_AAC_DEFAULT_BIT_RATE 0x00028488 //165kbps
+#define BTIF_AAC_MIN_BITRATE 0x0000FA00
 
 typedef struct  {
     INT16 s16SamplingFreq;  /* 16k, 32k, 44.1k or 48k*/
