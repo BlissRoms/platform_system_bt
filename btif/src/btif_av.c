@@ -915,6 +915,7 @@ static BOOLEAN btif_av_state_opening_handler(btif_sm_event_t event, void *p_data
             /* inform the application that we are disconnected */
             btif_report_connection_state(BTAV_CONNECTION_STATE_DISCONNECTED,
                     &(btif_av_cb[index].peer_bda));
+            btif_queue_advance();
             btif_sm_change_state(btif_av_cb[index].sm_handle, BTIF_AV_STATE_IDLE);
             break;
 
