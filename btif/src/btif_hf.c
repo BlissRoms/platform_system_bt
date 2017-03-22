@@ -1659,9 +1659,9 @@ BOOLEAN btif_hf_is_call_vr_idle()
                 ((btif_hf_cb[i].num_held + btif_hf_cb[i].num_active) == 0));
     }
 
-    if (j || (btif_hf_check_if_sco_connected() != BT_STATUS_SUCCESS))
+    if (j && (btif_hf_check_if_sco_connected() != BT_STATUS_SUCCESS))
     {
-        BTIF_TRACE_EVENT("%s: call state idle and no sco connected", __FUNCTION__);
+        BTIF_TRACE_EVENT("%s: call state idle and no sco connected.", __FUNCTION__);
         return TRUE;
     }
     else
