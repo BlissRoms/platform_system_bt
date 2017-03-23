@@ -155,7 +155,7 @@ void btm_ble_multi_adv_vsc_cmpl_cback (tBTM_VSC_CMPL *p_params)
     if (!controller_get_interface()->get_is_ready())
     {
         BTM_TRACE_ERROR("btm_ble_multi_adv_vsc_cmpl_cback controller not ready. returning!");
-
+        return;
     }
 
     if (len  < 2)
