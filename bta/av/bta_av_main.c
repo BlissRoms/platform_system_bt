@@ -215,6 +215,7 @@ const tBTA_AV_NSM_ACT bta_av_nsm_act[] =
     bta_av_api_to_ssm,              /* BTA_AV_API_STOP_EVT */
     bta_av_api_update_max_av_clients,
     bta_av_api_enable_multicast,    /* BTA_AV_ENABLE_MULTICAST_EVT */
+    bta_av_rc_collission_detected, /* BTA_AV_RC_COLLISSION_DETECTED_EVT */
 };
 
 /*****************************************************************************

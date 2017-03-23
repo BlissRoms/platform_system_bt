@@ -302,10 +302,14 @@ BOOLEAN btif_a2dp_on_started(tBTA_AV_START *p_av, BOOLEAN pending_start, tBTA_AV
 void btif_media_on_stop_vendor_command();
 void btif_media_send_reset_vendor_state();
 void btif_a2dp_on_remote_started();
+BOOLEAN btif_media_send_vendor_start();
+void btif_media_start_vendor_command();
 #else
 #define btif_media_on_stop_vendor_command() (0)
 #define btif_media_send_reset_vendor_state() (0)
 #define btif_a2dp_on_remote_started() (0)
+#define btif_media_send_vendor_start() (0)
+#define btif_media_start_vendor_command() (0)
 #endif
 void btif_a2dp_ack_fail(void);
 void btif_a2dp_on_stop_req(void);
@@ -317,7 +321,6 @@ void btif_a2dp_set_rx_flush(BOOLEAN enable);
 void btif_media_check_iop_exceptions(UINT8 *peer_bda);
 void btif_reset_decoder(UINT8 *p_av);
 void btif_a2dp_on_offload_started(tBTA_AV_STATUS status);
-
 
 int btif_a2dp_get_track_frequency(UINT8 frequency);
 int btif_a2dp_get_track_channel_count(UINT8 channeltype);

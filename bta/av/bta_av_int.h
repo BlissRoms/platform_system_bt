@@ -114,7 +114,8 @@ enum
     BTA_AV_API_START_EVT,       /* the following 2 events must be in the same order as the *AP_*EVT */
     BTA_AV_API_STOP_EVT,
     BTA_AV_UPDATE_MAX_AV_CLIENTS_EVT,
-    BTA_AV_ENABLE_MULTICAST_EVT /* Event for enable and disable multicast */
+    BTA_AV_ENABLE_MULTICAST_EVT, /* Event for enable and disable multicast */
+    BTA_AV_RC_COLLISSION_DETECTED_EVT
 };
 
 /* events for AV control block state machine */
@@ -383,6 +384,14 @@ typedef struct
     BD_ADDR             peer_addr;
     UINT8               handle;
 } tBTA_AV_RC_CONN_CHG;
+
+/* data type for BTA_AV_AVRC_COLL_DETECTED_EVT */
+typedef struct
+{
+    BT_HDR              hdr;
+    BD_ADDR             peer_addr;
+    UINT8               handle;
+} tBTA_AV_RC_COLLISSION_DETECTED;
 
 /* data type for BTA_AV_CONN_CHG_EVT */
 typedef struct
@@ -705,6 +714,7 @@ extern void bta_av_rc_closed(tBTA_AV_DATA *p_data);
 extern void bta_av_rc_disc(UINT8 disc);
 extern void bta_av_conn_chg(tBTA_AV_DATA *p_data);
 extern void bta_av_dereg_comp(tBTA_AV_DATA *p_data);
+extern void bta_av_rc_collission_detected(tBTA_AV_DATA *p_data);
 
 /* sm action functions */
 extern void bta_av_disable (tBTA_AV_CB *p_cb, tBTA_AV_DATA *p_data);
