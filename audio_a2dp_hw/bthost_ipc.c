@@ -64,7 +64,7 @@ static int bt_split_a2dp_enabled = 0;
 #define STREAM_START_MAX_RETRY_COUNT 10
 #define STREAM_START_MAX_RETRY_LOOPER 8
 
-#define CTRL_CHAN_RETRY_COUNT 3
+#define CTRL_CHAN_RETRY_COUNT 1
 #define USEC_PER_SEC 1000000L
 #define SOCK_SEND_TIMEOUT_MS 2000  /* Timeout for sending */
 #define SOCK_RECV_TIMEOUT_MS 5000  /* Timeout for receiving */
@@ -597,7 +597,7 @@ int a2dp_ctrl_receive(struct a2dp_stream_common *common, void* buffer, int lengt
             ERROR("ack failed: error(%s)", strerror(errno));
             break;
         }
-        if (i == (CTRL_CHAN_RETRY_COUNT - 1)) {
+        if (i == (CTRL_CHAN_RETRY_COUNT + 1)) {
             ERROR("ack failed: max retry count");
             break;
         }
@@ -770,7 +770,10 @@ void a2dp_open_ctrl_path(struct a2dp_stream_common *common)
         }
 
         /* ctrl channel not ready, wait a bit */
-        usleep(250000);
+        if (CTRL_CHAN_RETRY_COUNT > 1)
+        {
+            usleep(250000);
+        }
     }
 }
 
@@ -1003,6 +1006,7 @@ int audio_start_stream()
             }
             if (audio_stream.ctrl_fd == AUDIO_SKT_DISCONNECTED)
             {
+                audio_stream.state = AUDIO_A2DP_STATE_STOPPED;
                 INFO("control path is disconnected");
                 goto end;
             }
