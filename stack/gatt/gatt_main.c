@@ -281,6 +281,13 @@ BOOLEAN gatt_disconnect (tGATT_TCB *p_tcb)
 *******************************************************************************/
 BOOLEAN gatt_update_app_hold_link_status(tGATT_IF gatt_if, tGATT_TCB *p_tcb, BOOLEAN is_add)
 {
+    for (int i = 0; i < GATT_MAX_APPS; i++) {
+        if (p_tcb->app_hold_link[i] == gatt_if && is_add) {
+            GATT_TRACE_DEBUG("%s: gatt_if %d already exists at idx %d", __func__, gatt_if, i);
+            return true;
+        }
+    }
+
     for (int i=0; i<GATT_MAX_APPS; i++) {
         if (p_tcb->app_hold_link[i] == 0 && is_add) {
             p_tcb->app_hold_link[i] = gatt_if;
