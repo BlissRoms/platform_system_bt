@@ -3205,6 +3205,12 @@ void btm_sec_rmt_name_request_complete (UINT8 *p_bd_addr, UINT8 *p_bd_name, UINT
                     return;
                 }
             }
+            else if (status == HCI_ERR_CONTROLLER_BUSY)
+            {
+                BTM_TRACE_WARNING ("btm_sec_rmt_name_request_complete() Wait for incoming connection");
+                p_dev_rec->rnr_retry_cnt = 0;
+                return;
+            }
             else
             {
                 BTM_TRACE_EVENT ("btm_sec_rmt_name_request_complete() reset RNR retry count ");
@@ -4630,7 +4636,7 @@ void btm_sec_connected (UINT8 *bda, UINT16 handle, UINT8 status, UINT8 enc_mode)
             }
         }
         /* wait for incoming connection without resetting pairing state */
-        else if (status == HCI_ERR_CONNECTION_EXISTS)
+        else if ((status == HCI_ERR_CONNECTION_EXISTS) || (status ==  HCI_ERR_CONTROLLER_BUSY))
         {
             BTM_TRACE_WARNING ("Security Manager: btm_sec_connected: Wait for incoming connection");
             return;
