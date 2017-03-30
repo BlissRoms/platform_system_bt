@@ -830,6 +830,11 @@ BOOLEAN BTM_BleConfigPrivacy(BOOLEAN privacy_mode)
 *******************************************************************************/
 extern UINT8  BTM_BleMaxMultiAdvInstanceCount(void)
 {
+    if (!controller_get_interface()->get_is_ready()) {
+        BTM_TRACE_ERROR("%s() controller interface not ready", __func__);
+        return 0;
+    }
+
     return controller_get_interface()->get_ble_adv_ext_size() < BTM_BLE_MULTI_ADV_MAX ?
         controller_get_interface()->get_ble_adv_ext_size() : BTM_BLE_MULTI_ADV_MAX;
 }
