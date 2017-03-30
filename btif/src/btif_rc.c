@@ -38,6 +38,7 @@
 #include "bta_api.h"
 #include "bta_av_api.h"
 #include "btif_av.h"
+#include "btif_media.h"
 #include "btif_common.h"
 #include "btif_util.h"
 #include "bt_common.h"
@@ -131,7 +132,7 @@
 
 #define FILL_PDU_QUEUE(idx, ctype, label, pending, index, cmd)                                 \
 {                                                                                              \
-    btif_rc_cb[index].rc_pdu_info[idx].ctype = ctype;                                          \
+    btif_rc_cb[index].rc_pdu_info[idx].ctype[idx] = ctype;                                     \
     TXN_LABEL_ENQUEUE(btif_rc_cb[index].rc_handle, btif_rc_cb[index].rc_pdu_info[idx].label,   \
             btif_rc_cb[index].rc_pdu_info[idx].front, btif_rc_cb[index].rc_pdu_info[idx].rear, \
             btif_rc_cb[index].rc_pdu_info[idx].size, label, cmd);                              \
@@ -154,12 +155,14 @@
             btif_rc_cb[index].rc_pdu_info[idx].rear,                                           \
             btif_rc_cb[index].rc_pdu_info[idx].size);                                          \
     send_metamsg_rsp(btif_rc_cb[index].rc_handle, curr_label,                                  \
-            btif_rc_cb[index].rc_pdu_info[idx].ctype, avrc_rsp);                               \
+            btif_rc_cb[index].rc_pdu_info[idx].ctype[idx], avrc_rsp);                          \
     BTIF_TRACE_DEBUG("%s txn label %d dequeued from txn queue, queue sz %d \n", __FUNCTION__,  \
             curr_label, btif_rc_cb[index].rc_pdu_info[idx].size);                              \
-    btif_rc_cb[index].rc_pdu_info[idx].ctype = 0;                                              \
     if (btif_rc_cb[index].rc_pdu_info[idx].size == 0)                                          \
+    {                                                                                          \
+        btif_rc_cb[index].rc_pdu_info[idx].ctype[idx] = 0;                                     \
         btif_rc_cb[index].rc_pdu_info[idx].is_rsp_pending = FALSE;                             \
+    }                                                                                          \
 }
 
 #define SEND_BROWSEMSG_RSP(idx , avrc_rsp, index)                                              \
@@ -176,12 +179,14 @@
             btif_rc_cb[index].rc_pdu_info[idx].rear,                                           \
             btif_rc_cb[index].rc_pdu_info[idx].size);                                          \
     send_browsemsg_rsp(btif_rc_cb[index].rc_handle, curr_label,                                \
-            btif_rc_cb[index].rc_pdu_info[idx].ctype, avrc_rsp);                               \
+            btif_rc_cb[index].rc_pdu_info[idx].ctype[idx], avrc_rsp);                          \
     BTIF_TRACE_DEBUG("%s txn label %d dequeued from txn queue, queue sz %d \n", __FUNCTION__,  \
             curr_label, btif_rc_cb[index].rc_pdu_info[idx].size);                              \
-    btif_rc_cb[index].rc_pdu_info[idx].ctype = 0;                                              \
     if (btif_rc_cb[index].rc_pdu_info[idx].size == 0)                                          \
+    {                                                                                          \
+        btif_rc_cb[index].rc_pdu_info[idx].ctype[idx] = 0;                                     \
         btif_rc_cb[index].rc_pdu_info[idx].is_rsp_pending = FALSE;                             \
+    }                                                                                          \
 }
 
 /*****************************************************************************
@@ -198,7 +203,7 @@ typedef struct
     int rear;
     int size;
     UINT8 label[MAX_TRANSACTIONS_PER_SESSION];
-    UINT8   ctype;
+    UINT8 ctype[MAX_TRANSACTIONS_PER_SESSION];
     BOOLEAN is_rsp_pending;
 } btif_rc_cmd_ctxt_t;
 
@@ -401,10 +406,12 @@ extern void btif_get_latest_playing_device(BD_ADDR address); //get the Playing d
 extern BOOLEAN btif_av_is_playing();
 extern BOOLEAN btif_av_is_device_connected(BD_ADDR address);
 extern void btif_av_trigger_dual_handoff(BOOLEAN handoff, BD_ADDR address);
-extern BOOLEAN btif_hf_is_call_idle();
+extern BOOLEAN btif_hf_is_call_vr_idle();
 extern BOOLEAN btif_av_is_current_device(BD_ADDR address);
 extern UINT16 btif_av_get_num_connected_devices(void);
 extern UINT16 btif_av_get_num_playing_devices(void);
+extern BOOLEAN btif_av_is_offload_supported();
+extern UINT8 btif_av_idx_by_bdaddr(BD_ADDR bd_addr);
 
 extern fixed_queue_t *btu_general_alarm_queue;
 
@@ -2415,7 +2422,7 @@ static void btif_rc_upstreams_evt(UINT16 event, tAVRC_COMMAND *pavrc_cmd, UINT8 
         {
             BTIF_TRACE_EVENT("%s() AVRC_PDU_SET_ADDRESSED_PLAYER", __FUNCTION__);
             FILL_PDU_QUEUE(IDX_SET_ADDRESS_PLAYER_RSP, ctype, label, TRUE, index, pavrc_cmd->pdu);
-            if (!btif_hf_is_call_idle())
+            if (!btif_hf_is_call_vr_idle())
             {
                 set_addrplayer_rsp(ERR_PLAYER_NOT_ADDRESED, &remote_addr); // send reject if call is in progress
                 return;
@@ -2788,9 +2795,11 @@ static bt_status_t get_play_status_rsp(btrc_play_status_t play_status, uint32_t 
 {
     tAVRC_RESPONSE avrc_rsp;
     int rc_index;
+    int av_index;
     CHECK_RC_CONNECTED
 
     rc_index = btif_rc_get_idx_by_addr(bd_addr->address);
+    av_index = btif_av_idx_by_bdaddr(bd_addr->address);
     if (rc_index == btif_max_rc_clients)
     {
         BTIF_TRACE_ERROR("-%s on unknown index = %d", __FUNCTION__);
@@ -2802,6 +2811,17 @@ static bt_status_t get_play_status_rsp(btrc_play_status_t play_status, uint32_t 
     avrc_rsp.get_play_status.song_len = song_len;
     avrc_rsp.get_play_status.song_pos = song_pos;
     avrc_rsp.get_play_status.play_status = play_status;
+    BTIF_TRACE_ERROR("%s: play_status: %d",__FUNCTION__, avrc_rsp.get_play_status.play_status);
+    if ((avrc_rsp.get_play_status.play_status == BTRC_PLAYSTATE_PLAYING) &&
+         (btif_av_check_flag_remote_suspend(av_index)))
+    {
+        BTIF_TRACE_ERROR("%s: clear remote suspend flag: %d",__FUNCTION__, av_index);
+        btif_av_clear_remote_suspend_flag();
+        if (btif_av_is_offload_supported())
+        {
+            btif_dispatch_sm_event(BTIF_AV_START_STREAM_REQ_EVT, NULL, 0);
+        }
+    }
 
     avrc_rsp.get_play_status.pdu = AVRC_PDU_GET_PLAY_STATUS;
     avrc_rsp.get_play_status.opcode = opcode_from_pdu(AVRC_PDU_GET_PLAY_STATUS);
@@ -3180,6 +3200,7 @@ static bt_status_t register_notification_rsp(btrc_event_id_t event_id,
     }
     memset(&(avrc_rsp.reg_notif), 0, sizeof(tAVRC_REG_NOTIF_RSP));
     avrc_rsp.reg_notif.event_id = event_id;
+    int av_index = btif_av_idx_by_bdaddr(bd_addr->address);
 
     switch(event_id)
     {
@@ -3189,8 +3210,18 @@ static bt_status_t register_notification_rsp(btrc_event_id_t event_id,
              * suspend within 3s after pause, and DUT within 3s
              * initiates Play
             */
-            if (avrc_rsp.reg_notif.param.play_status == PLAY_STATUS_PLAYING)
+            BTIF_TRACE_ERROR("%s: play_status: %d",__FUNCTION__,
+                                  avrc_rsp.reg_notif.param.play_status);
+            if ((avrc_rsp.reg_notif.param.play_status == PLAY_STATUS_PLAYING) &&
+                (btif_av_check_flag_remote_suspend(av_index)))
+            {
+                BTIF_TRACE_ERROR("%s: clear remote suspend flag: %d",__FUNCTION__,av_index );
                 btif_av_clear_remote_suspend_flag();
+                if (btif_av_is_offload_supported())
+                {
+                    btif_dispatch_sm_event(BTIF_AV_START_STREAM_REQ_EVT, NULL, 0);
+                }
+            }
             break;
         case BTRC_EVT_TRACK_CHANGE:
             memcpy(&(avrc_rsp.reg_notif.param.track), &(p_param->track), sizeof(btrc_uid_t));

@@ -84,6 +84,8 @@ struct blacklist_entry
 #define AVRC_MIN_META_CMD_LEN 20
 #endif
 
+#define AVRC_L2CAP_MIN_CONN_FAILURE_CODE 2 /*same as L2CAP_CONN_NO_PSM*/
+
 /* state machine states */
 enum
 {
@@ -247,13 +249,24 @@ static void bta_av_avrc_sdp_cback(UINT16 status)
 static void bta_av_rc_ctrl_cback(UINT8 handle, UINT8 event, UINT16 result, BD_ADDR peer_addr)
 {
     UINT16 msg_event = 0;
-    UNUSED(result);
 
 #if (defined(BTA_AV_MIN_DEBUG_TRACES) && BTA_AV_MIN_DEBUG_TRACES == TRUE)
     APPL_TRACE_EVENT("rc_ctrl handle: %d event=0x%x", handle, event);
 #else
     BTIF_TRACE_IMP("bta_av_rc_ctrl_cback handle: %d event=0x%x", handle, event);
 #endif
+    if (((event == AVRC_OPEN_IND_EVT) || (event == AVRC_CLOSE_IND_EVT))
+        && (result >= AVRC_L2CAP_MIN_CONN_FAILURE_CODE))
+    {
+        APPL_TRACE_WARNING("AVRCP connection encountered error=%x", result);
+        tBTA_AV_RC_COLLISSION_DETECTED *p_msg =
+            (tBTA_AV_RC_COLLISSION_DETECTED *)osi_malloc(sizeof(tBTA_AV_RC_COLLISSION_DETECTED));
+        p_msg->hdr.event = BTA_AV_RC_COLLISSION_DETECTED_EVT;
+        p_msg->handle = handle;
+        if (peer_addr)
+            bdcpy(p_msg->peer_addr, peer_addr);
+        bta_sys_sendmsg(p_msg);
+    }
     if (event == AVRC_OPEN_IND_EVT)
     {
         /* save handle of opened connection
@@ -392,9 +405,9 @@ UINT8 bta_av_rc_create(tBTA_AV_CB *p_cb, UINT8 role, UINT8 shdl, UINT8 lidx)
         /* this LIDX is reserved for the AVRCP ACP connection */
         p_cb->rc_acp_handle = p_rcb->handle;
         p_cb->rc_acp_idx = (i + 1);
-        APPL_TRACE_DEBUG("rc_acp_handle:%d idx:%d", p_cb->rc_acp_handle, p_cb->rc_acp_idx);
+        APPL_TRACE_IMP("rc_acp_handle: %d idx: %d", p_cb->rc_acp_handle, p_cb->rc_acp_idx);
     }
-    APPL_TRACE_DEBUG("create %d, role: %d, shdl:%d, rc_handle:%d, lidx:%d, status:0x%x",
+    APPL_TRACE_IMP("bta_av_rc_create %d, role: %d, shdl:%d, rc_handle:%d, lidx:%d, status:0x%x",
         i, role, shdl, p_rcb->handle, lidx, p_rcb->status);
 
     return rc_handle;
@@ -2249,6 +2262,26 @@ void bta_av_rc_disc_done(tBTA_AV_DATA *p_data)
 
 /*******************************************************************************
 **
+** Function         bta_av_rc_collission_detected
+**
+** Description      Update App on collision detected case
+**
+**
+** Returns          void
+**
+*******************************************************************************/
+void bta_av_rc_collission_detected(tBTA_AV_DATA *p_data)
+{
+    tBTA_AV_CB   *p_cb = &bta_av_cb;
+    tBTA_AV_RC_COLL_DETECTED rc_coll;
+    tBTA_AV_RC_COLLISSION_DETECTED *p_msg = (tBTA_AV_RC_COLLISSION_DETECTED *)p_data;
+    rc_coll.rc_handle = p_msg->handle;
+    bdcpy(rc_coll.peer_addr, p_msg->peer_addr);
+    (*p_cb->p_cback)(BTA_AV_RC_COLL_DETECTED_EVT, (tBTA_AV *) &rc_coll);
+}
+
+/*******************************************************************************
+**
 ** Function         bta_av_rc_closed
 **
 ** Description      Set AVRCP state to closed.
@@ -2340,6 +2373,9 @@ void bta_av_rc_closed(tBTA_AV_DATA *p_data)
         bdcpy(rc_close.peer_addr, p_msg->peer_addr);
     }
     (*p_cb->p_cback)(BTA_AV_RC_CLOSE_EVT, (tBTA_AV *) &rc_close);
+    if (bta_av_cb.rc_acp_handle == BTA_AV_RC_HANDLE_NONE
+                    && bta_av_cb.features & BTA_AV_FEAT_RCTG)
+        bta_av_rc_create(&bta_av_cb, AVCT_ACP, 0, BTA_AV_NUM_LINKS + 1);
 }
 
 /*******************************************************************************

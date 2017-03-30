@@ -269,8 +269,10 @@ typedef UINT8 tBTA_AV_ERR;
 #define BTA_AV_OFFLOAD_START_RSP_EVT 22 /* a2dp offload start response */
 #define BTA_AV_BROWSE_MSG_EVT   23      /* Browse MSG EVT */
 #define BTA_AV_ROLE_CHANGED_EVT     24
+#define BTA_AV_RC_COLL_DETECTED_EVT     25       /* RC channel collosion detected */
+
 /* Max BTA event */
-#define BTA_AV_MAX_EVT          25
+#define BTA_AV_MAX_EVT          26
 
 typedef UINT8 tBTA_AV_EVT;
 
@@ -379,6 +381,13 @@ typedef struct
     BD_ADDR         peer_addr;
 } tBTA_AV_RC_CLOSE;
 
+/* data associated with BTA_AV_RC_COLL_DETECTED */
+typedef struct
+{
+    UINT8           rc_handle;
+    BD_ADDR         peer_addr;
+} tBTA_AV_RC_COLL_DETECTED;
+
 /* data associated with BTA_AV_RC_FEAT_EVT */
 typedef struct
 {
@@ -477,6 +486,7 @@ typedef union
     tBTA_AV_PROTECT_RSP protect_rsp;
     tBTA_AV_RC_OPEN     rc_open;
     tBTA_AV_RC_CLOSE    rc_close;
+    tBTA_AV_RC_COLL_DETECTED rc_col_detected;
     tBTA_AV_REMOTE_CMD  remote_cmd;
     tBTA_AV_REMOTE_RSP  remote_rsp;
     tBTA_AV_VENDOR      vendor_cmd;
