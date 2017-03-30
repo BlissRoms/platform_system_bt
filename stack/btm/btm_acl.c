@@ -614,8 +614,8 @@ tBTM_STATUS BTM_SwitchRole (BD_ADDR remote_bd_addr, UINT8 new_role, tBTM_CMPL_CB
     BD_ADDR_PTR  p_bda;
 #endif
 
-    /* Make sure the local device supports switching */
-    if (!controller_get_interface()->supports_master_slave_role_switch())
+    /* Make sure the local/remote devices supports switching */
+    if (!btm_dev_support_switch(remote_bd_addr))
         return(BTM_MODE_UNSUPPORTED);
 
     if (btm_cb.devcb.p_switch_role_cb && p_cb)
