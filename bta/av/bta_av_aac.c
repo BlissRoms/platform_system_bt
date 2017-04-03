@@ -56,7 +56,6 @@ UINT8 bta_av_aac_cfg_in_cap(UINT8 *p_cfg, tA2D_AAC_CIE *p_cap)
         return status;
     }
 
-
     /* object type */
     if ((cfg_cie.object_type & p_cap->object_type) == 0)
     {
@@ -72,8 +71,8 @@ UINT8 bta_av_aac_cfg_in_cap(UINT8 *p_cfg, tA2D_AAC_CIE *p_cap)
     {
         status = A2D_NS_CHANNEL;
     }
-    /* block length */
-    else if ((cfg_cie.bit_rate & p_cap->bit_rate) == 0)
+    /* bitrate */
+    else if ((cfg_cie.bit_rate & p_cap->bit_rate || cfg_cie.bit_rate < p_cap->bit_rate ) == 0)
     {
         status = A2D_NS_BIT_RATE;
     }
