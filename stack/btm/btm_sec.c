@@ -3205,6 +3205,12 @@ void btm_sec_rmt_name_request_complete (UINT8 *p_bd_addr, UINT8 *p_bd_name, UINT
                     return;
                 }
             }
+            else if (status == HCI_ERR_CONTROLLER_BUSY)
+            {
+                BTM_TRACE_WARNING ("btm_sec_rmt_name_request_complete() Wait for incoming connection");
+                p_dev_rec->rnr_retry_cnt = 0;
+                return;
+            }
             else
             {
                 BTM_TRACE_EVENT ("btm_sec_rmt_name_request_complete() reset RNR retry count ");
@@ -4630,7 +4636,7 @@ void btm_sec_connected (UINT8 *bda, UINT16 handle, UINT8 status, UINT8 enc_mode)
             }
         }
         /* wait for incoming connection without resetting pairing state */
-        else if (status == HCI_ERR_CONNECTION_EXISTS)
+        else if ((status == HCI_ERR_CONNECTION_EXISTS) || (status ==  HCI_ERR_CONTROLLER_BUSY))
         {
             BTM_TRACE_WARNING ("Security Manager: btm_sec_connected: Wait for incoming connection");
             return;
@@ -5219,6 +5225,23 @@ static void btm_sec_pairing_timeout(UNUSED_ATTR void *data)
         case BTM_PAIR_STATE_GET_REM_NAME:
             /* We need to notify the UI that timeout has happened while waiting for authentication*/
             btm_sec_change_pairing_state (BTM_PAIR_STATE_IDLE);
+            tL2C_LCB *p_lcb = l2cu_find_lcb_by_bd_addr (p_cb->pairing_bda, BT_TRANSPORT_BR_EDR);
+            /* If no channels on the connection, start idle timeout */
+            if ((p_lcb) && p_lcb->in_use && (p_lcb->link_state == LST_CONNECTED))
+            {
+                if (!p_lcb->ccb_queue.p_first_ccb)
+                {
+                    BTM_TRACE_WARNING("%s start idle timeout if no ccbs", __func__ );
+                    l2cu_no_dynamic_ccbs (p_lcb);
+                }
+                else
+                {
+                    BTM_TRACE_ERROR("%s hci disc triggered when last channel disconnects BDA: %08x%04x",
+                                __func__,
+                                (p_cb->pairing_bda[0]<<24) + (p_cb->pairing_bda[1]<<16) + (p_cb->pairing_bda[2]<<8) + p_cb->pairing_bda[3],
+                                (p_cb->pairing_bda[4] << 8) + p_cb->pairing_bda[5]);
+                }
+            }
             if (btm_cb.api.p_auth_complete_callback)
             {
                 if (p_dev_rec == NULL)
