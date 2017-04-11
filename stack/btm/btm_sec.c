@@ -4490,10 +4490,10 @@ void btm_sec_connected (UINT8 *bda, UINT16 handle, UINT8 status, UINT8 enc_mode)
 #if (BT_USE_TRACES == TRUE)
     if (p_dev_rec)
     {
-        BTM_TRACE_EVENT ("Security Manager: btm_sec_connected in state: %s  handle:%d status:%d enc_mode:%d  bda:%x RName:%s",
+        BTM_TRACE_EVENT ("Security Manager: btm_sec_connected in state: %s  handle:%d status:%d enc_mode:%d  bda:%x RName:%s,new_encr_key_256 to %d",
                           btm_pair_state_descr(btm_cb.pairing_state), handle, status, enc_mode,
                           (bda[2]<<24)+(bda[3]<<16)+(bda[4]<<8)+bda[5],
-                          p_dev_rec->sec_bd_name);
+                          p_dev_rec->sec_bd_name,p_dev_rec->new_encryption_key_is_p256);
     }
     else
     {
@@ -4792,7 +4792,7 @@ void btm_sec_connected (UINT8 *bda, UINT16 handle, UINT8 status, UINT8 enc_mode)
     /* After connection is established we perform security if we do not know */
     /* the name, or if we are originator because some procedure can have */
     /* been scheduled while connection was down */
-    BTM_TRACE_DEBUG ("is_originator:%d ", p_dev_rec->is_originator);
+    BTM_TRACE_DEBUG ("is_originator:%d ,new_encr_key_256 to %d", p_dev_rec->is_originator,p_dev_rec->new_encryption_key_is_p256);
     return;
 }
 
@@ -4872,7 +4872,7 @@ void btm_sec_disconnected (UINT16 handle, UINT8 reason)
             "  remote_name:%s", __func__, p_dev_rec->security_required, btm_pair_state_descr(btm_cb.pairing_state),
             reason, bd_addr[0], bd_addr[1], bd_addr[2], bd_addr[3], bd_addr[4], bd_addr[5], p_dev_rec->sec_bd_name);
 
-    BTM_TRACE_EVENT("%s before update sec_flags=0x%x", __func__, p_dev_rec->sec_flags);
+    BTM_TRACE_EVENT("%s before update sec_flags=0x%x, new_encr_key_256 to %d ", __func__, p_dev_rec->sec_flags,p_dev_rec->new_encryption_key_is_p256);
 
     /* If we are in the process of bonding we need to tell client that auth failed */
     if ( (btm_cb.pairing_state != BTM_PAIR_STATE_IDLE)
@@ -4929,7 +4929,7 @@ void btm_sec_disconnected (UINT16 handle, UINT8 reason)
     p_dev_rec->security_required = BTM_SEC_NONE;
 
     p_callback = p_dev_rec->p_callback;
-
+    p_dev_rec->new_encryption_key_is_p256 = FALSE;
     /* if security is pending, send callback to clean up the security state */
     if(p_callback)
     {
@@ -4938,7 +4938,7 @@ void btm_sec_disconnected (UINT16 handle, UINT8 reason)
         (*p_callback) (p_dev_rec->bd_addr, transport, p_dev_rec->p_ref_data, BTM_ERR_PROCESSING);
     }
 
-    BTM_TRACE_EVENT("%s after update sec_flags=0x%x", __func__, p_dev_rec->sec_flags);
+    BTM_TRACE_EVENT("%s after update sec_flags=0x%x,new_encr_key_256 to %d", __func__, p_dev_rec->sec_flags,p_dev_rec->new_encryption_key_is_p256);
 }
 
 /*******************************************************************************
