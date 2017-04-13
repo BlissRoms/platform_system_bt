@@ -1017,13 +1017,13 @@ typedef struct
     BOOLEAN         is_limited;             /* TRUE, if the limited inquiry bit is set in the CoD */
     INT8            rssi;                   /* The rssi value */
     UINT8           *p_eir;                 /* received EIR */
+    UINT16          adv_data_len;
 #if (BLE_INCLUDED == TRUE)
     UINT8               inq_result_type;
     UINT8               ble_addr_type;
     tBTM_BLE_EVT_TYPE   ble_evt_type;
     tBT_DEVICE_TYPE     device_type;
     UINT8               flag;
-    UINT16              adv_data_len;
 #endif
 
 } tBTA_DM_INQ_RES;
