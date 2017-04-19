@@ -1754,6 +1754,21 @@ extern void BTM_BleUpdateAdvFilterPolicy(tBTM_BLE_AFP adv_policy);
 *******************************************************************************/
 void BTM_BleReceiverTest(UINT8 rx_freq, tBTM_CMPL_CB *p_cmd_cmpl_cback);
 
+/*******************************************************************************
+**
+** Function         BTM_BleEnhReceiverTest
+**
+** Description      This function is called to start the LE Enhanced Receiver
+**                  test
+**
+** Parameter        rx_freq - Frequency Range
+**                  phy - Phy to be used
+**                  mod_index - Modulation index
+**                  p_cmd_cmpl_cback - Command Complete callback
+**
+*******************************************************************************/
+void BTM_BleEnhReceiverTest(UINT8 rx_freq, UINT8 phy, UINT8 mod_index,
+                              tBTM_CMPL_CB *p_cmd_cmpl_cback);
 
 /*******************************************************************************
 **
@@ -1769,6 +1784,23 @@ void BTM_BleReceiverTest(UINT8 rx_freq, tBTM_CMPL_CB *p_cmd_cmpl_cback);
 *******************************************************************************/
 void BTM_BleTransmitterTest(UINT8 tx_freq, UINT8 test_data_len,
                                  UINT8 packet_payload, tBTM_CMPL_CB *p_cmd_cmpl_cback);
+
+/*******************************************************************************
+**
+** Function         BTM_BleEnhTransmitterTest
+**
+** Description      This function is called to start the LE Enhanced Transmitter test
+**
+** Parameter        tx_freq - Frequency Range
+**                  test_data_len - Length in bytes of payload data in each packet
+**                  packet_payload - Pattern to use in the payload
+**                  phy - Phy to be used
+**                  p_cmd_cmpl_cback - Command Complete callback
+**
+*******************************************************************************/
+void BTM_BleEnhTransmitterTest(UINT8 tx_freq, UINT8 test_data_len,
+                                 UINT8 packet_payload, UINT8 phy,
+                                 tBTM_CMPL_CB *p_cmd_cmpl_cback);
 
 /*******************************************************************************
 **

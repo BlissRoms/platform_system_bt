@@ -521,6 +521,8 @@ extern BOOLEAN btsnd_hcic_change_name(BD_NAME name);
 
 #define HCIC_WRITE_PARAM3_PARAM_OFF      0
 
+#define HCIC_PARAM_SIZE_WRITE_PARAM4     4
+
 #define HCIC_PARAM_SIZE_SET_AFH_CHANNELS    10
 
 extern BOOLEAN btsnd_hcic_write_pin_type(UINT8 type);                   /* Write PIN Type */
@@ -780,8 +782,14 @@ extern BOOLEAN btsnd_hcic_ble_read_host_supported (void);
 
 extern BOOLEAN btsnd_hcic_ble_receiver_test(UINT8 rx_freq);
 
+extern BOOLEAN btsnd_hcic_ble_enh_receiver_test(UINT8 rx_freq, UINT8 phy, UINT8 mod_index);
+
 extern BOOLEAN btsnd_hcic_ble_transmitter_test(UINT8 tx_freq, UINT8 test_data_len,
                                                UINT8 payload);
+
+extern BOOLEAN btsnd_hcic_ble_enh_transmitter_test(UINT8 tx_freq, UINT8 test_data_len,
+                                               UINT8 payload, UINT8 phy);
+
 extern BOOLEAN btsnd_hcic_ble_test_end(void);
 
 #if (defined BLE_LLT_INCLUDED) && (BLE_LLT_INCLUDED == TRUE)
