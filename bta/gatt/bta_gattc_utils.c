@@ -302,6 +302,12 @@ void bta_gattc_clcb_dealloc(tBTA_GATTC_CLCB *p_clcb)
             p_srcb->connected = FALSE;
             p_srcb->state = BTA_GATTC_SERV_IDLE;
             p_srcb->mtu = 0;
+
+            /* clean up cache */
+            if (p_srcb->p_srvc_cache) {
+                list_free(p_srcb->p_srvc_cache);
+                p_srcb->p_srvc_cache = NULL;
+            }
         }
 
         osi_free_and_reset((void **)&p_clcb->p_q_cmd);
@@ -470,6 +476,30 @@ BOOLEAN bta_gattc_check_notif_registry(tBTA_GATTC_RCB  *p_clreg, tBTA_GATTC_SERV
     return FALSE;
 
 }
+
+/*******************************************************************************
+**
+** Function         bta_gattc_clear_notif_reg_on_disc
+**
+** Description      clear up the notification registration at disconnection.
+**
+** Returns          None.
+**
+*******************************************************************************/
+void bta_gattc_clear_notif_reg_on_disc(tBTA_GATTC_RCB *p_clreg) {
+    if (!p_clreg) {
+        APPL_TRACE_ERROR("%s, Invalid regiseration block", __func__);
+        return;
+    }
+
+    UINT8 i;
+    for (i = 0; i < BTA_GATTC_NOTIF_REG_MAX; i++) {
+        if (p_clreg->notif_reg[i].in_use) {
+            memset(&p_clreg->notif_reg[i], 0, sizeof(tBTA_GATTC_NOTIF_REG));
+        }
+    }
+}
+
 /*******************************************************************************
 **
 ** Function         bta_gattc_clear_notif_registration

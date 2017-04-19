@@ -603,8 +603,9 @@ typedef UINT8 tBTA_SIG_STRENGTH_MASK;
 #define BTA_DM_HW_ERROR_EVT             26      /* BT Chip H/W error */
 #define BTA_DM_LE_FEATURES_READ         27      /* Cotroller specific LE features are read */
 #define BTA_DM_ENER_INFO_READ           28      /* Energy info read */
-#define BTA_DM_LE_ADV_EXT_FEATURES_READ 29      /* LE Adv extension features are read */
-typedef UINT8 tBTA_DM_SEC_EVT;
+#define BTA_DM_LE_ADV_EXT_FEATURES_READ 29
+#define BTA_DM_BLE_SC_OOB_REQ_EVT       30      /* SMP SC OOB request event */
+typedef uint8_t tBTA_DM_SEC_EVT;
 
 /* Structure associated with BTA_DM_ENABLE_EVT */
 typedef struct
