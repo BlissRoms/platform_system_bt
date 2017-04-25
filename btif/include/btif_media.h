@@ -38,7 +38,6 @@
 #include "bta_api.h"
 #include "bt_common.h"
 #include "btif_av_api.h"
-#include "audio_a2dp_hw.h"
 #include "a2d_aac.h"
 
 /*******************************************************************************

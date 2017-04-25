@@ -227,4 +227,16 @@ BOOLEAN bta_av_co_get_remote_bitpool_pref(UINT8 *min, UINT8 *max);
  *******************************************************************************/
 UINT8 bta_av_select_codec(tBTA_AV_HNDL hdl);
 
+/*******************************************************************************
+ **
+ ** Function         bta_av_co_audio_is_aac_enabled
+ **
+ ** Description      Compares the given BD address family against the interop databse
+ **                  and return if AAC can be selected as a codec for streaming or not
+ **
+ ** Returns          TRUE if AAC is allowed , FALSE otherwise
+ **
+ *******************************************************************************/
+BOOLEAN bta_av_co_audio_is_aac_enabled(bt_bdaddr_t *remote_bdaddr);
+
 #endif

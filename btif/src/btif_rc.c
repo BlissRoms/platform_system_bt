@@ -48,6 +48,7 @@
 #include "osi/include/list.h"
 #include "osi/include/properties.h"
 #include "btu.h"
+#include "stack/sdp/sdpint.h"
 #define RC_INVALID_TRACK_ID (0xFFFFFFFFFFFFFFFFULL)
 
 /*****************************************************************************
@@ -2384,6 +2385,17 @@ static void btif_rc_upstreams_evt(UINT16 event, tAVRC_COMMAND *pavrc_cmd, UINT8 
                     }
                 }
             }
+#if (defined(AVCT_COVER_ART_INCLUDED) && (AVCT_COVER_ART_INCLUDED == TRUE))
+            int ver = AVRC_REV_INVALID;
+            ver = sdp_get_stored_avrc_tg_version (remote_addr.address);
+            if ((!(btif_rc_cb[index].rc_features & BTA_AV_FEAT_CA)) ||
+                  (ver < AVRC_REV_1_6) || (ver == AVRC_REV_INVALID))
+            {
+                BTIF_TRACE_IMP("remove the cover art elem attribute if remote doesn't support avrcp1.6");
+                if(num_attr == MAX_ELEM_ATTR_SIZE)
+                    num_attr--;
+            }
+#endif
             FILL_PDU_QUEUE(IDX_GET_ELEMENT_ATTR_RSP, ctype, label, TRUE, index, pavrc_cmd->pdu);
             HAL_CBACK(bt_rc_callbacks, get_element_attr_cb, num_attr, element_attrs, &remote_addr);
         }
@@ -2542,7 +2554,17 @@ static void btif_rc_upstreams_evt(UINT16 event, tAVRC_COMMAND *pavrc_cmd, UINT8 
                 num_attr_requested = idx;
                 BTIF_TRACE_ERROR("num_attr_requested: %d", num_attr_requested);
             }
-
+#if (defined(AVCT_COVER_ART_INCLUDED) && (AVCT_COVER_ART_INCLUDED == TRUE))
+            int ver = AVRC_REV_INVALID;
+            ver = sdp_get_stored_avrc_tg_version (remote_addr.address);
+            if ((!(btif_rc_cb[index].rc_features & BTA_AV_FEAT_CA)) ||
+                  (ver < AVRC_REV_1_6) || (ver == AVRC_REV_INVALID))
+            {
+                BTIF_TRACE_IMP("remove the cover art elem attribute if remote doesn't support avrcp1.6");
+                if(num_attr_requested == MAX_ELEM_ATTR_SIZE)
+                    num_attr_requested--;
+            }
+#endif
             if (btif_rc_cb[index].rc_connected == TRUE)
             {
                 FILL_PDU_QUEUE(IDX_GET_ITEM_ATTR_RSP, ctype, label, TRUE, index, pavrc_cmd->pdu);

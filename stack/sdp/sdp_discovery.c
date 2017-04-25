@@ -353,13 +353,14 @@ static void sdp_copy_raw_data (tCONN_CB *p_ccb, BOOLEAN offset)
     UINT8           type;
 
 #if (SDP_DEBUG_RAW == TRUE)
-    UINT8 num_array[SDP_MAX_LIST_BYTE_COUNT];
+    UINT8 num_array[2 * SDP_MAX_LIST_BYTE_COUNT + 1]; // Need double the space to store hex data
     UINT32 i;
 
     for (i = 0; i < p_ccb->list_len; i++)
     {
         sprintf((char *)&num_array[i*2],"%02X",(UINT8)(p_ccb->rsp_list[i]));
     }
+    (char)num_array[2*i] = '\0';
     SDP_TRACE_WARNING("result :%s",num_array);
 #endif
 

@@ -27,7 +27,7 @@
  *  BTIF.
  *
  ******************************************************************************/
-
+#include <cutils/properties.h>
 #include "string.h"
 #include "a2d_api.h"
 #include "a2d_sbc.h"
@@ -1719,6 +1719,26 @@ static BOOLEAN bta_av_co_audio_sink_supports_cp(const tBTA_AV_CO_SINK *p_sink)
     }
 }
 
+BOOLEAN bta_av_co_audio_is_aac_enabled(bt_bdaddr_t *remote_bdaddr)
+{
+    int retval;
+    BOOLEAN res = FALSE;
+    char is_whitelist_by_default[255] = "false";
+    retval = property_get("persist.bt.a2dp.aac_whitelist", is_whitelist_by_default, "false");
+    BTIF_TRACE_DEBUG("%s: property_get: bt.a2dp.aac_whitelist: %s, retval: %d",
+                                    __func__, is_whitelist_by_default, retval);
+
+    if (!strncmp(is_whitelist_by_default, "true", 4)) {
+        if (interop_match_addr(INTEROP_ENABLE_AAC_CODEC, remote_bdaddr))
+            res = TRUE;
+    } else if (!interop_match_addr(INTEROP_DISABLE_AAC_CODEC, remote_bdaddr)) {
+            res = TRUE;
+    }
+
+    return res;
+}
+
+
 /*******************************************************************************
  **
  ** Function         bta_av_co_audio_peer_supports_codec
@@ -1838,7 +1858,7 @@ static BOOLEAN bta_av_co_audio_peer_supports_codec(tBTA_AV_CO_PEER *p_peer, UINT
 
 #if defined(AAC_ENCODER_INCLUDED) && (AAC_ENCODER_INCLUDED == TRUE)
     if (bt_split_a2dp_enabled && btif_av_is_codec_offload_supported(AAC) &&
-          !interop_match_addr(INTEROP_DISABLE_AAC_CODEC, &remote_bdaddr)) {
+          bta_av_co_audio_is_aac_enabled(&remote_bdaddr)) {
         for (index = 0; index < p_peer->num_sup_snks; index++)
         {
             APPL_TRACE_DEBUG("%s AAC: index: %d, codec_type: %d", __func__, index, p_peer->snks[index].codec_type);

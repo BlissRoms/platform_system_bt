@@ -137,8 +137,9 @@ UINT16 GAP_ConnOpen (char *p_serv_name, UINT8 service_id, BOOLEAN is_server,
     if ((p_ccb = gap_allocate_ccb()) == NULL)
         return (GAP_INVALID_HANDLE);
 
-    /* update the transport */
+    /* update the transport ,service_id */
     p_ccb->transport = transport;
+    p_ccb->service_id = service_id;
 
     /* If caller specified a BD address, save it */
     if (p_rem_bda)
@@ -216,7 +217,6 @@ UINT16 GAP_ConnOpen (char *p_serv_name, UINT8 service_id, BOOLEAN is_server,
     }
 
     /* Register with Security Manager for the specific security level */
-    p_ccb->service_id = service_id;
     if (!BTM_SetSecurityLevel ((UINT8)!is_server, p_serv_name,
                 p_ccb->service_id, security, p_ccb->psm, 0, 0))
     {
