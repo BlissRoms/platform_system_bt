@@ -830,6 +830,11 @@ BOOLEAN BTM_BleConfigPrivacy(BOOLEAN privacy_mode)
 *******************************************************************************/
 extern UINT8  BTM_BleMaxMultiAdvInstanceCount(void)
 {
+    if (!controller_get_interface()->get_is_ready()) {
+        BTM_TRACE_ERROR("%s() controller interface not ready", __func__);
+        return 0;
+    }
+
     return controller_get_interface()->get_ble_adv_ext_size() < BTM_BLE_MULTI_ADV_MAX ?
         controller_get_interface()->get_ble_adv_ext_size() : BTM_BLE_MULTI_ADV_MAX;
 }
@@ -2459,25 +2464,31 @@ void btm_ble_cache_adv_data(tBTM_INQ_RESULTS *p_cur, UINT8 data_len, UINT8 *p, U
 {
     tBTM_BLE_INQ_DATA_CB     *p_le_inq_cb = &p_cur->inq_data;
     UINT8 *p_adv_data_cache;
+    tBTM_BLE_INQ_CB     *p_le_adv_data_cb = &btm_cb.ble_ctr_cb.inq_var;
 
     if(p_le_inq_cb->adv_len == 0)
     {
-        //if evt type is Extended and Complete data, then allocate 255 bytes of adv data
-        if(extended && ((evt_type & BTM_BLE_EXT_LEGACY_ADV_MASK) == 0) &&
-                ((evt_type & BTM_BLE_EXT_ADV_EVT_DATA_MASK) == 0))
+        if (controller_get_interface()->supports_ble_extended_advertisements())
         {
-            p_le_inq_cb->adv_data_cache = osi_calloc((sizeof(UINT8)) * (HCI_COMMAND_SIZE));
-        }
-        //if evt type is Extended and Incomplete data, then allocate controller's max supported bytes
-        else if(extended && ((evt_type & BTM_BLE_EXT_LEGACY_ADV_MASK) == 0) &&
-                ((evt_type & BTM_BLE_EXT_ADV_EVT_DATA_INCMPL_MASK) == BTM_BLE_EXT_ADV_EVT_DATA_INCMPL_MASK))
-        {
-            p_le_inq_cb->adv_data_cache = osi_calloc(sizeof(UINT8) * (btm_cb.ble_adv_ext_cb.adv_data_len_max));
+            //if evt type is Extended and Complete data, then allocate 255 bytes of adv data
+            if(extended && ((evt_type & BTM_BLE_EXT_LEGACY_ADV_MASK) == 0) &&
+                    ((evt_type & BTM_BLE_EXT_ADV_EVT_DATA_MASK) == 0))
+            {
+                p_le_inq_cb->adv_data_cache = osi_calloc((sizeof(UINT8)) * (HCI_COMMAND_SIZE));
+            }
+            //if evt type is Extended and Incomplete data, then allocate controller's max supported bytes
+            else if(extended && ((evt_type & BTM_BLE_EXT_LEGACY_ADV_MASK) == 0) &&
+                    ((evt_type & BTM_BLE_EXT_ADV_EVT_DATA_INCMPL_MASK) == BTM_BLE_EXT_ADV_EVT_DATA_INCMPL_MASK))
+            {
+                p_le_inq_cb->adv_data_cache = osi_calloc(sizeof(UINT8) * (btm_cb.ble_adv_ext_cb.adv_data_len_max));
+            }
+            else
+            {
+                p_le_inq_cb->adv_data_cache = osi_calloc((sizeof(UINT8)) * (BTM_BLE_CACHE_ADV_DATA_MAX));
+            }
         }
         else
-        {
-            p_le_inq_cb->adv_data_cache = osi_calloc((sizeof(UINT8)) * (BTM_BLE_CACHE_ADV_DATA_MAX));
-        }
+            p_le_inq_cb->adv_data_cache = p_le_adv_data_cb->adv_data_cache;
     }
 
     /* cache adv report/scan response data ,check for only legacy adv's scan rsp evt*/
@@ -2788,11 +2799,12 @@ BOOLEAN btm_ble_update_inq_result(tINQ_DB_ENT *p_i, UINT8 addr_type, UINT16 evt_
     {
         BTM_TRACE_WARNING("Adv data for extended adv is truncated:: discard");
         p_le_inq_cb->adv_len = 0;
-        if(p_le_inq_cb->adv_data_cache)
+        if (controller_get_interface()->supports_ble_extended_advertisements() && p_le_inq_cb->adv_data_cache)
         {
             osi_free_and_reset((void **)&p_le_inq_cb->adv_data_cache);
             p_le_inq_cb->adv_data_cache = NULL;
         }
+
         return FALSE;
     }
 
@@ -3218,12 +3230,14 @@ static void btm_ble_process_adv_pkt_cont(BD_ADDR bda, UINT8 addr_type, UINT16 ev
         {
             (p_obs_results_cb)((tBTM_INQ_RESULTS *) &p_i->inq_info.results, p_le_inq_cb->adv_data_cache);
         }
+
         //Deallocate memory for adv data cache
-        if(p_le_inq_cb->adv_data_cache)
+        if(controller_get_interface()->supports_ble_extended_advertisements() && p_le_inq_cb->adv_data_cache)
         {
             osi_free_and_reset((void **)&p_le_inq_cb->adv_data_cache);
             p_le_inq_cb->adv_data_cache = NULL;
         }
+
         p_le_inq_cb->adv_len = 0;
     }
 }
