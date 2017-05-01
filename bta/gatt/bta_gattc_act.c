@@ -826,7 +826,7 @@ void bta_gattc_close(tBTA_GATTC_CLCB *p_clcb, tBTA_GATTC_DATA *p_data)
     {
         bta_gattc_deregister_cmpl(p_clreg);
     }
-    bta_gattc_clear_notif_reg_on_disc(p_clreg);
+    bta_gattc_clear_notif_reg_on_disc(p_clreg, p_clcb->bda);
 }
 /*******************************************************************************
 **

@@ -479,7 +479,7 @@ extern BOOLEAN bta_gattc_mark_bg_conn (tBTA_GATTC_IF client_if,  BD_ADDR_PTR rem
 extern BOOLEAN bta_gattc_check_bg_conn (tBTA_GATTC_IF client_if,  BD_ADDR remote_bda, UINT8 role);
 extern UINT8 bta_gattc_num_reg_app(void);
 extern void bta_gattc_clear_notif_registration(tBTA_GATTC_SERV *p_srcb, UINT16 conn_id, UINT16 start_handle, UINT16 end_handle);
-extern void bta_gattc_clear_notif_reg_on_disc(tBTA_GATTC_RCB *p_clreg);
+extern void bta_gattc_clear_notif_reg_on_disc(tBTA_GATTC_RCB *p_clreg, BD_ADDR bda);
 extern tBTA_GATTC_SERV * bta_gattc_find_srvr_cache(BD_ADDR bda);
 
 /* discovery functions */
