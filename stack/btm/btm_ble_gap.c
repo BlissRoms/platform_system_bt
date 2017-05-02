@@ -45,6 +45,7 @@
 #include "gattdefs.h"
 #include "l2c_int.h"
 #include "osi/include/log.h"
+#include "osi/include/time.h"
 
 #define BTM_BLE_NAME_SHORT                  0x01
 #define BTM_BLE_NAME_CMPL                   0x02
@@ -3170,6 +3171,8 @@ static void btm_ble_process_adv_pkt_cont(BD_ADDR bda, UINT8 addr_type, UINT16 ev
         p_inq->inq_cmpl_info.num_resp++;
     }
     p_le_inq_cb = &p_i->inq_info.results.inq_data;
+
+    p_i->time_of_resp = time_get_os_boottime_ms();
 
     /* update the LE device information in inquiry database */
     if (!btm_ble_update_inq_result(p_i, addr_type, evt_type, p, extended))
