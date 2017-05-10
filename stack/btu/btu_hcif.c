@@ -884,6 +884,8 @@ static void btu_hcif_hdl_command_complete (UINT16 opcode, UINT8 *p, UINT16 evt_l
 
         case HCI_BLE_TRANSMITTER_TEST:
         case HCI_BLE_RECEIVER_TEST:
+        case HCI_BLE_ENH_TRANSMITTER_TEST:
+        case HCI_BLE_ENH_RECEIVER_TEST:
         case HCI_BLE_TEST_END:
             btm_ble_test_command_complete(p);
             break;

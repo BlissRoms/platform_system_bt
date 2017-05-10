@@ -29,13 +29,27 @@ LOCAL_C_INCLUDES := \
     $(LOCAL_PATH)/../hci/include \
     $(LOCAL_PATH)/../include \
     $(LOCAL_PATH)/../stack/include \
-    vendor/qcom/opensource/bluetooth/system_bt_ext \
     $(bluetooth_C_INCLUDES)
+
+ifneq ($(TARGET_SUPPORTS_WEARABLES),true)
+LOCAL_C_INCLUDES += \
+    vendor/qcom/opensource/bluetooth/system_bt_ext
+else
+LOCAL_C_INCLUDES += \
+    device/qcom/msm8909w/opensource/bluetooth/system_bt_ext
+endif
 
 LOCAL_SRC_FILES := \
     src/classic/peer.c \
-    src/controller.c \
+    src/controller.c
+
+ifneq ($(TARGET_SUPPORTS_WEARABLES),true)
+LOCAL_SRC_FILES += \
     ../../../vendor/qcom/opensource/bluetooth/system_bt_ext/device/src/interop.c
+else
+LOCAL_SRC_FILES += \
+    ../../../device/qcom/msm8909w/opensource/bluetooth/system_bt_ext/device/src/interop.c
+endif
 
 LOCAL_MODULE := libbtdevice
 LOCAL_MODULE_TAGS := optional
