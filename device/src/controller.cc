@@ -380,12 +380,20 @@ static bool supports_master_slave_role_switch(void) {
 
 static bool supports_enhanced_setup_synchronous_connection(void) {
   assert(readable);
+#if (BTM_SCO_ENHANCED_SYNC_DISABLED == TRUE)
+  return false;
+#else
   return HCI_ENH_SETUP_SYNCH_CONN_SUPPORTED(supported_commands);
+#endif
 }
 
 static bool supports_enhanced_accept_synchronous_connection(void) {
   assert(readable);
+#if (BTM_SCO_ENHANCED_SYNC_DISABLED == TRUE)
+  return false;
+#else
   return HCI_ENH_ACCEPT_SYNCH_CONN_SUPPORTED(supported_commands);
+#endif
 }
 
 static bool supports_ble(void) {
